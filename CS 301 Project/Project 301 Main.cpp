@@ -5,11 +5,11 @@ Nathan Damon
 This program will simulate a small habit with different animals.
 Huge Shout out to YouTuber javidx9 for his Console Game Engine that he has made available on github
 and his RPG game tutorial from which I built upon for this project.
-
-Main is at the bottom of this file
 */
 
-//#include "Engine.h"
+//Main is at the bottom of this file
+
+
 
 #define OLC_PGE_APPLICATION
 #include "Project_Maps.h"
@@ -24,8 +24,6 @@ using std::endl;
 #include <string>
 using std::string;
 
-//extern "C" int wants_to_eat(float maxfullness/*, int fullness*/); // written in assembly!
-
 //Assembly Functions Ahead!!!
 
 extern "C" int set_int_variable1(int value);
@@ -38,30 +36,16 @@ extern "C" float set_float_variable3(int value);
 extern "C" float set_float_variable4(int value);
 extern "C" int set_all_function_use_variables_to_0(void);
 
+
+// Unimplemented
 extern "C" int wants_to_eat(void); // Takes float_variable1(fullness) and float_variable2(maxfullness)
-//C++ Functions Below!!!
-
-//int main()
-//{
-//	//cout << "wants_to_eat returns " << wants_to_eat(70.0) << endl;
-//	/*set_int_variable1(42);
-//	set_int_variable2(35);
-//	set_int_variable3(5523);
-//	set_int_variable4(7);*/
-//	cout << "var1: " << set_float_variable1(113) << endl;
-//	cout << "var2: " << set_float_variable2(250) << endl;
-//	cout << "var3: " << set_float_variable3(250) << endl;
-//	cout << "int wants_to_eat returns: " << wants_to_eat() << endl;
-//
-//
-//	char delay; 
-//	std::cin >> delay;
-//	return 0;
-//}
 
 
+// Implemented
+extern "C" int SeasonOfYear(float); // Takes a float of time and returns 1-4 based on season
+extern "C" int YearlengthSet(float);// Takes a float and sets the year's length to that value
 
- //Override base class with your custom functionality
+// Creates a small habitat with the ambition to be more
 class Topdown_Game : public olc::PixelGameEngine
 {
 public:
@@ -89,12 +73,12 @@ private:
 	float Player_speed = 4.0f;
 	bool Cheats_allowed = true;
 	float Time = 0;
-	string season = "Spring";
-	int YearLength = 60; // Seconds
+	int season = 1; // 1 = spring, 2 = summer, 3 = fall, 4 = winter
+	float YearLength = 60.0f; // Seconds
 	vector<cDynamic*> m_nvecDynamics_que; // Ques up the new creatures to be placed in the world
-	int Dynamic_Cap = 50; // Set a limit fo the number of creatures
+	int Dynamic_Cap = 50; // Set a limit to the number of creatures
 	float Repulsion = 2.2f; // How fast the creatures will repel each other when overlapping
-	float RepulsionRate = 15.0f; // How fast they are repulsed
+	float RepulsionRate = 15.0f; // How fast creatures are repulsed
 	//int Zoom = 1;
 
 protected:
@@ -112,30 +96,18 @@ protected:
 		m_pPlayer->_posy = 5.0f;
 		m_pPlayer->_GrowthStage = 3;
 
-		/*m_pPlayer = new cDynamic_Creature("player", DecalMap::get().GetDecal("TestSpriteSheet"));
-		m_pPlayer->_posx = 7.0f;
-		m_pPlayer->_posy = 5.0f;
-		m_pPlayer->_GrowthStage = 3;*/
-
 		m_nvecDynamics.push_back(m_pPlayer); // Put player in the vector first
 		m_pCurrentMap->PopulateDynamics(m_nvecDynamics, e1);
+
+		YearlengthSet(YearLength);
 
 		return true;
 	}
 
 	virtual bool OnUserUpdate(float fElapsedTime)
 	{
-		Time += fElapsedTime; // Nathan: Added seasons for the creatures
-		if (Time > YearLength)
-			Time = 0;
-		if (Time >= 0 && Time < YearLength / 4)
-			season = "Spring";
-		else if (Time >= YearLength / 4 && Time < YearLength / 2)
-			season = "Summer";
-		else if (Time >= YearLength / 2 && Time < (YearLength * 3 / 4))
-			season = "Fall";
-		else if (Time >= (YearLength * 3 / 4) && Time < YearLength)
-			season = "Winter";
+		// Nathan: Added seasons for the creatures 
+		season = SeasonOfYear(fElapsedTime); // Now in assembly
 
 		m_pPlayer->_velx = 0.0f; // Set velocity to zero
 		m_pPlayer->_vely = 0.0f;
@@ -299,7 +271,6 @@ protected:
 			for (int i = Dynamic_Cap; i < m_nvecDynamics.size(); i++)
 				((cDynamic_Creature*)m_nvecDynamics[i])->_nHealth = 0;
 		}
-
 
 		for (auto& object : m_nvecDynamics)
 		{

@@ -7,7 +7,6 @@ Linked video: https://www.youtube.com/watch?v=xXXt3htgDok
 I have made some changes to this code to better fit my project and limitations
 */
 
-//#pragma once
 #ifndef DECALMAP_H
 #define DECALMAP_H
 

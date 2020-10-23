@@ -6,7 +6,6 @@ NOTE: This code was made following along with javidx9's Role Playing game part #
 Linked video: https://www.youtube.com/watch?v=AWY_ITpldRk
 I have made some changes to this code to better fit my project and limitations
 */
-//#pragma once
 
 #include "Dynamic.h"
 #include "DecalMap.h"
@@ -53,7 +52,7 @@ cDynamic_Creature::cDynamic_Creature(string name, olc::Decal* sprite) : cDynamic
 	_cGender = 'M';
 }
 
-void cDynamic_Creature::Update(float fElapsedTime, string season, cDynamic* player)
+void cDynamic_Creature::Update(float fElapsedTime, int season, cDynamic* player)
 {
 	m_fTimer += fElapsedTime;
 	if (m_fTimer >= 0.2f)
@@ -113,7 +112,7 @@ void cDynamic_Creature::DrawSelf(PixelGameEngine* gfx, float offsetx, float offs
 	gfx->DrawPartialDecal({ (_posx - offsetx) * 16.0f, (_posy - offsety) * 16.0f }, m_pDecal, { nSheetOffsetX, nSheetOffsetY }, { 16, 16 }, { growthscale, growthscale });
 }
 
-void cDynamic_Creature::Behaviour(float fElapsedTime, string season, cDynamic* player)
+void cDynamic_Creature::Behaviour(float fElapsedTime, int season, cDynamic* player)
 {
 	// No default behaviour
 }
@@ -139,7 +138,7 @@ cDynamic_Creature_Rabbit::cDynamic_Creature_Rabbit() : cDynamic_Creature("Rabbit
 	_Mass = 1.5f; // baby rabbit weight
 }
 
-void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, string season, cDynamic* player)
+void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynamic* player)
 {
 	// Check if player is nearby
 	float fTargetX = player->_posx - _posx;
@@ -173,10 +172,10 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, string season, cDyn
 
 		}
 
-		if (_GrowthStage == 3 && season == "Spring" && !_bHasMingled)
+		if (_GrowthStage == 3 && season == 1 && !_bHasMingled)
 			_bMingle = true;
 
-		if (_GrowthStage == 3 && season != "Spring")
+		if (_GrowthStage == 3 && season != 1)
 		{
 			_bHasMingled = false;
 		}

@@ -7,7 +7,7 @@ Linked video: https://www.youtube.com/watch?v=AWY_ITpldRk
 I have made some changes to this code to better fit my project and limitations
 */
 
-//#pragma once
+
 #ifndef DYNAMIC_H
 #define DYNAMIC_H
 
@@ -35,7 +35,7 @@ public:
 
 public:
 	virtual void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) {}
-	virtual void Update(float fElapsedTime, string season, cDynamic* player = nullptr) {}
+	virtual void Update(float fElapsedTime, int season, cDynamic* player = nullptr) {}
 };
 
 //##################################################################################################
@@ -66,8 +66,8 @@ public:
 
 public:
 	void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) override;
-	virtual void Update(float fElapsedTime, string season, cDynamic* player = nullptr) override;
-	virtual void Behaviour(float fElapsedTime, string season, cDynamic* player = nullptr);
+	virtual void Update(float fElapsedTime, int season, cDynamic* player = nullptr) override;
+	virtual void Behaviour(float fElapsedTime, int season, cDynamic* player = nullptr);
 	int GetFacingDirection();
 
 protected:
@@ -81,7 +81,7 @@ class cDynamic_Creature_Rabbit : public cDynamic_Creature
 {
 public:
 	cDynamic_Creature_Rabbit();
-	virtual void Behaviour(float fElapsedTime, string season, cDynamic* player = nullptr) override;
+	virtual void Behaviour(float fElapsedTime, int season, cDynamic* player = nullptr) override;
 
 };
 

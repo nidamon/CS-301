@@ -6,7 +6,7 @@ NOTE: This code was made following along with javidx9's Role Playing game part #
 Linked video: https://www.youtube.com/watch?v=xXXt3htgDok
 I have made some changes to this code to better fit my project and limitations
 */
-//#pragma once
+
 
 #include "DecalMap.h"
 #include "Project_Maps.h"
