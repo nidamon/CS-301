@@ -32,6 +32,7 @@ public:
 	string _sName;
 
 	float _Mass; // Nathan: added this for some movement code that I think will turn out interesting
+	float _DynamicRadius; // Gives the radius for dynamic collision repulsion
 
 public:
 	virtual void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) {}
@@ -63,6 +64,7 @@ public:
 	float _age;
 	int _fullness; // % amount
 	char _cGender;
+	float _DynamicRadius; // Gives the radius for dynamic collision repulsion
 
 public:
 	void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) override;

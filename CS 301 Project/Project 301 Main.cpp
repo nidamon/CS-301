@@ -23,6 +23,8 @@ using std::cin;
 using std::endl;
 #include <string>
 using std::string;
+#include <algorithm>
+#include <math.h>
 
 //Assembly Functions Ahead!!!
 
@@ -94,7 +96,9 @@ protected:
 		m_pPlayer = new cDynamic_Creature("player", DecalMap::get().GetDecal("TestSpriteSheet"));
 		m_pPlayer->_posx = 5.0f;
 		m_pPlayer->_posy = 5.0f;
-		m_pPlayer->_GrowthStage = 3;
+		m_pPlayer->_GrowthStage = 2;
+		m_pPlayer->_Mass = 8.0f; // Pay no attention the lightweight Player!
+		m_pPlayer->_DynamicRadius = 0.6f;
 
 		m_nvecDynamics.push_back(m_pPlayer); // Put player in the vector first
 		m_pCurrentMap->PopulateDynamics(m_nvecDynamics, e1);
@@ -391,51 +395,69 @@ protected:
 					//If the object is solid then the player must not overlap
 					if (dyn->_bSolidVsDyn && object->_bSolidVsDyn)
 					{
-						// Check if bounding rectangles overlap
-						if (fDynamicObjectPosX < (dyn->_posx + 1.0f) && (fDynamicObjectPosX + 1.0f) > dyn->_posx&&                    // 4 float cmp in asm
-							object->_posy < (dyn->_posy + 1.0f) && (object->_posy + 1.0f) > dyn->_posy)
+						// Nathan: Changed the square bounding boxes for dynamic interaction into circular bounds
+						// Get the distance between the centers of the objects
+						float Distance = sqrt((dyn->_posx - object->_posx) * (dyn->_posx - object->_posx) +
+							(dyn->_posy - object->_posy) * (dyn->_posy - object->_posy));
+						//cout << "We check distance = " << Distance << endl;
+
+						// Amount of overlap between cricular bounds
+						float Overlap = (((cDynamic_Creature*)dyn)->_DynamicRadius + ((cDynamic_Creature*)object)->_DynamicRadius - Distance);
+						float difference = 0.0f;
+
+						// Check if circles overlap
+						if (Overlap > 0.0f)
 						{
-							// First Check Horizontally - Check Left
-							if (object->_velx <= 0)
+							// Finding Y component
+							float Yval = sin(atan((dyn->_posx - object->_posx) / (dyn->_posy - object->_posy)));
+							// Finding X component
+							float Xval = cos(atan((dyn->_posx - object->_posx) / (dyn->_posy - object->_posy)));
+
+							// Set the velocity in the x and y directions
+							float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)object)->_Mass);
+							if ((dyn->_posx - object->_posx) < 0.0f)
+								((cDynamic_Creature*)dyn)->_vely = -YComponent;
+							else
+								((cDynamic_Creature*)dyn)->_vely = YComponent;
+
+
+							float XComponent = (Overlap) * (Xval) * (((cDynamic_Creature*)object)->_Mass);
+							if ((dyn->_posx - object->_posx) < 0.0f)
+								((cDynamic_Creature*)dyn)->_velx = -XComponent;
+							else
+								((cDynamic_Creature*)dyn)->_velx = XComponent;
+
+
+
+							/*float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)object)->_Mass);
+							if ((dyn->_posx - object->_posx) < 0.0f)
 							{
-								//fDynamicObjectPosX = dyn->_posx + 1.0f;	
-								dyn->_velx += (RepulsionRate * (1 - (dyn->_posx - object->_posx) * (dyn->_posx - object->_posx))) * fElapsedTime / dyn->_Mass;
-								if (dyn->_velx > Repulsion)
-									dyn->_velx = Repulsion;
-								interaction(dyn, object, m_nvecDynamics_que);
+								((cDynamic_Creature*)dyn)->_vely += -YComponent * fElapsedTime;
+								if (((cDynamic_Creature*)dyn)->_vely < -YComponent)
+									((cDynamic_Creature*)dyn)->_vely = -YComponent;
 							}
 							else
 							{
-								//fDynamicObjectPosX = dyn->_posx - 1.0f;
-								dyn->_velx -= (RepulsionRate * (1 - (dyn->_posx - object->_posx) * (dyn->_posx - object->_posx))) * fElapsedTime / dyn->_Mass;
-								if (dyn->_velx < -Repulsion)
-									dyn->_velx = -Repulsion;
-								interaction(dyn, object, m_nvecDynamics_que);
+								((cDynamic_Creature*)dyn)->_vely += YComponent * fElapsedTime, YComponent;
+								if (((cDynamic_Creature*)dyn)->_vely > YComponent)
+									((cDynamic_Creature*)dyn)->_vely = YComponent;
 							}
-						}
 
-						// Check if bounding rectangles overlap
-						if (fDynamicObjectPosX < (dyn->_posx + 1.0f) && (fDynamicObjectPosX + 1.0f) > dyn->_posx&&
-							fDynamicObjectPosY < (dyn->_posy + 1.0f) && (fDynamicObjectPosY + 1.0f) > dyn->_posy)
-						{
-							// First Check Vetically - Check Left
-							if (object->_vely <= 0)
+
+							float XComponent = (Overlap) * (Xval) * (((cDynamic_Creature*)object)->_Mass);
+							if ((dyn->_posx - object->_posx) < 0.0f)
 							{
-								//fDynamicObjectPosY = dyn->_posy + 1.0f;
-								dyn->_vely += (RepulsionRate * (1 - (dyn->_posy - object->_posy) * (dyn->_posy - object->_posy))) * fElapsedTime / dyn->_Mass;
-								if (dyn->_vely > Repulsion)
-									dyn->_vely = Repulsion;
-								interaction(dyn, object, m_nvecDynamics_que);
+								((cDynamic_Creature*)dyn)->_velx += -XComponent * fElapsedTime;
+								if (((cDynamic_Creature*)dyn)->_velx < -XComponent)
+									((cDynamic_Creature*)dyn)->_velx = -XComponent;
+
 							}
 							else
 							{
-								//fDynamicObjectPosY = dyn->_posy - 1.0f;
-								dyn->_vely -= (RepulsionRate * (1 - (dyn->_posy - object->_posy) * (dyn->_posy - object->_posy))) * fElapsedTime / dyn->_Mass;
-								if (dyn->_vely < -Repulsion)
-									dyn->_vely = -Repulsion;
-								interaction(dyn, object, m_nvecDynamics_que);
-							}
-
+								((cDynamic_Creature*)dyn)->_velx += XComponent * fElapsedTime;
+								if (((cDynamic_Creature*)dyn)->_velx > XComponent)
+									((cDynamic_Creature*)dyn)->_velx = XComponent;
+							}*/
 						}
 					}
 					else

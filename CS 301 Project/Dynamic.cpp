@@ -21,6 +21,7 @@ cDynamic::cDynamic(string n)
 	_bSolidVsDyn = true;
 	_bFriendly = true;
 	_bRedundant = false;
+	_DynamicRadius = 0.5f;
 }
 
 cDynamic::~cDynamic()
@@ -50,6 +51,7 @@ cDynamic_Creature::cDynamic_Creature(string name, olc::Decal* sprite) : cDynamic
 	_age = 0.0f;
 	_fullness = 70; // % amount
 	_cGender = 'M';
+	_DynamicRadius = 0.5f;
 }
 
 void cDynamic_Creature::Update(float fElapsedTime, int season, cDynamic* player)
@@ -136,6 +138,7 @@ cDynamic_Creature_Rabbit::cDynamic_Creature_Rabbit() : cDynamic_Creature("Rabbit
 	_bMingle = false;
 	_bHasMingled = false;
 	_Mass = 1.5f; // baby rabbit weight
+	_DynamicRadius = 0.25f; // Rabbits are small right?
 }
 
 void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynamic* player)
@@ -184,18 +187,46 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 		m_fstateTick -= fElapsedTime;
 		if (m_fstateTick <= 0.0f)
 		{
-			if (fDistance < 6.0f)
+			switch (rand() % 3) // Get movement on x-axis
+			{
+			case 0:
+				_velx = 0.0f;
+				break;
+			case 1:
+				_velx = 2.0f;
+				break;
+			case 2:
+				_velx = -2.0f;
+				break;
+			default:
+				break;
+			}
+			switch (rand() % 3) // Get movement on y-axis
+			{
+			case 0:
+				_vely = 0.0f;
+				break;
+			case 1:
+				_vely = 2.0f;
+				break;
+			case 2:
+				_vely = -2.0f;
+				break;
+			default:
+				break;
+			}
+			/*if (fDistance < 12.0f)
 			{
 				_velx = (fTargetX / fDistance) * 2.0f;
 				_vely = (fTargetY / fDistance) * 2.0f;
-			}
-			else
+			}*/
+			/*else
 			{
 				_velx = 0;
 				_vely = 0;
-			}
+			}*/
 
-			m_fstateTick += 0.5f;
+			m_fstateTick += 1.5f;
 		}
 	}
 	else // Nathan: Added for death

@@ -90,7 +90,7 @@ cMap_Plains::cMap_Plains()
 bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_random_engine& e1)
 {
 
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 40; i++)
 	{
 		std::uniform_int_distribution<int> uniform_dist(0, 128);
 		cDynamic* g1 = new cDynamic_Creature_Rabbit();
@@ -112,10 +112,10 @@ bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_rand
 	}
 	std::cout << std::endl;
 
-	cDynamic_Creature* tree1 = new cDynamic_Creature("Tree", DecalMap::get().GetDecal("Tree1"));
+	/*cDynamic_Creature* tree1 = new cDynamic_Creature("Tree", DecalMap::get().GetDecal("Tree1"));
 	tree1->_posx = 15.0f;
 	tree1->_posy = 6.0f;
-	vecDyns.push_back(tree1);
+	vecDyns.push_back(tree1);*/
 
 	return true;
 }
