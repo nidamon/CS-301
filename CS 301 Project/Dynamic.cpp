@@ -21,7 +21,11 @@ cDynamic::cDynamic(string n)
 	_bSolidVsDyn = true;
 	_bFriendly = true;
 	_bRedundant = false;
+
 	_DynamicRadius = 0.5f;
+	_collision_velx = 0.0f;
+	_collision_vely = 0.0f;
+	_number_collisions = 0;
 }
 
 cDynamic::~cDynamic()

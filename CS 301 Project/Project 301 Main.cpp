@@ -397,67 +397,70 @@ protected:
 					{
 						// Nathan: Changed the square bounding boxes for dynamic interaction into circular bounds
 						// Get the distance between the centers of the objects
-						float Distance = sqrt((dyn->_posx - object->_posx) * (dyn->_posx - object->_posx) +
-							(dyn->_posy - object->_posy) * (dyn->_posy - object->_posy));
+						float Distance = sqrt((object->_posx - dyn->_posx) * (object->_posx - dyn->_posx) +
+							(object->_posy - dyn->_posy) * (object->_posy - dyn->_posy));
 						//cout << "We check distance = " << Distance << endl;
 
 						// Amount of overlap between cricular bounds
-						float Overlap = (((cDynamic_Creature*)dyn)->_DynamicRadius + ((cDynamic_Creature*)object)->_DynamicRadius - Distance);
+						float Overlap = (((cDynamic_Creature*)object)->_DynamicRadius + ((cDynamic_Creature*)dyn)->_DynamicRadius - Distance);
 						float difference = 0.0f;
 
 						// Check if circles overlap
 						if (Overlap > 0.0f)
 						{
+							// Count the number of objects colliding with
+							object->_number_collisions++;
+
 							// Finding Y component
-							float Yval = sin(atan((dyn->_posx - object->_posx) / (dyn->_posy - object->_posy)));
+							float Yval = sin(atan((object->_posx - dyn->_posx) / (object->_posy - dyn->_posy)));
 							// Finding X component
-							float Xval = cos(atan((dyn->_posx - object->_posx) / (dyn->_posy - object->_posy)));
+							float Xval = cos(atan((object->_posx - dyn->_posx) / (object->_posy - dyn->_posy)));
 
-							// Set the velocity in the x and y directions
-							float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)object)->_Mass);
-							if ((dyn->_posx - object->_posx) < 0.0f)
-								((cDynamic_Creature*)dyn)->_vely = -YComponent;
-							else
-								((cDynamic_Creature*)dyn)->_vely = YComponent;
-
-
-							float XComponent = (Overlap) * (Xval) * (((cDynamic_Creature*)object)->_Mass);
-							if ((dyn->_posx - object->_posx) < 0.0f)
-								((cDynamic_Creature*)dyn)->_velx = -XComponent;
-							else
-								((cDynamic_Creature*)dyn)->_velx = XComponent;
+							//// Set the velocity in the x and y directions
+							//float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)object)->_Mass);
+							//if ((dyn->_posx - object->_posx) < 0.0f)
+							//	((cDynamic_Creature*)dyn)->_vely += -YComponent * fElapsedTime;
+							//else
+							//	((cDynamic_Creature*)dyn)->_vely += YComponent * fElapsedTime;
 
 
+							//float XComponent = (Overlap) * (Xval) * (((cDynamic_Creature*)object)->_Mass);
+							//if ((dyn->_posx - object->_posx) < 0.0f)
+							//	((cDynamic_Creature*)dyn)->_velx += -XComponent * fElapsedTime;
+							//else
+							//	((cDynamic_Creature*)dyn)->_velx += XComponent * fElapsedTime;
 
-							/*float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)object)->_Mass);
-							if ((dyn->_posx - object->_posx) < 0.0f)
+
+
+							float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)dyn)->_Mass);
+							if ((object->_posx - dyn->_posx) < 0.0f)
 							{
-								((cDynamic_Creature*)dyn)->_vely += -YComponent * fElapsedTime;
-								if (((cDynamic_Creature*)dyn)->_vely < -YComponent)
-									((cDynamic_Creature*)dyn)->_vely = -YComponent;
+								((cDynamic_Creature*)object)->_collision_vely += -YComponent * fElapsedTime;
+								if (((cDynamic_Creature*)object)->_collision_vely < -YComponent)
+									((cDynamic_Creature*)object)->_collision_vely = -YComponent;
 							}
 							else
 							{
-								((cDynamic_Creature*)dyn)->_vely += YComponent * fElapsedTime, YComponent;
-								if (((cDynamic_Creature*)dyn)->_vely > YComponent)
-									((cDynamic_Creature*)dyn)->_vely = YComponent;
+								((cDynamic_Creature*)object)->_collision_vely += YComponent * fElapsedTime;
+								if (((cDynamic_Creature*)object)->_collision_vely > YComponent)
+									((cDynamic_Creature*)object)->_collision_vely = YComponent;
 							}
 
 
-							float XComponent = (Overlap) * (Xval) * (((cDynamic_Creature*)object)->_Mass);
-							if ((dyn->_posx - object->_posx) < 0.0f)
+							float XComponent = (Overlap) * (Xval) * (((cDynamic_Creature*)dyn)->_Mass);
+							if ((object->_posx - dyn->_posx) < 0.0f)
 							{
-								((cDynamic_Creature*)dyn)->_velx += -XComponent * fElapsedTime;
-								if (((cDynamic_Creature*)dyn)->_velx < -XComponent)
-									((cDynamic_Creature*)dyn)->_velx = -XComponent;
+								((cDynamic_Creature*)object)->_collision_velx += -XComponent * fElapsedTime;
+								if (((cDynamic_Creature*)object)->_collision_velx < -XComponent)
+									((cDynamic_Creature*)object)->_collision_velx = -XComponent;
 
 							}
 							else
 							{
-								((cDynamic_Creature*)dyn)->_velx += XComponent * fElapsedTime;
-								if (((cDynamic_Creature*)dyn)->_velx > XComponent)
-									((cDynamic_Creature*)dyn)->_velx = XComponent;
-							}*/
+								((cDynamic_Creature*)object)->_collision_velx += XComponent * fElapsedTime;
+								if (((cDynamic_Creature*)object)->_collision_velx > XComponent)
+									((cDynamic_Creature*)object)->_collision_velx = XComponent;
+							}
 						}
 					}
 					else
@@ -476,9 +479,18 @@ protected:
 				}
 
 			}
+			// Nathan: Added an additional set of velocities to handle collision
+			if (object->_number_collisions == 0)
+			{
+				object->_collision_velx = 0;
+				object->_collision_vely = 0;
+			}
+			object->_number_collisions = 0; // Reset
 
-			object->_posx = fDynamicObjectPosX; // ~32:12
-			object->_posy = fDynamicObjectPosY;
+
+			object->_posx = fDynamicObjectPosX + (object->_collision_velx + object->_velx) * fElapsedTime; // ~32:12
+			object->_posy = fDynamicObjectPosY + (object->_collision_vely + object->_vely) * fElapsedTime;
+			
 
 			object->Update(fElapsedTime, season, m_nvecDynamics[0]);
 		}

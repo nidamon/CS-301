@@ -33,6 +33,8 @@ public:
 
 	float _Mass; // Nathan: added this for some movement code that I think will turn out interesting
 	float _DynamicRadius; // Gives the radius for dynamic collision repulsion
+	float _collision_velx, _collision_vely;  // Collision Velocity x,y
+	int _number_collisions; // Keep track of how many objects colliding with
 
 public:
 	virtual void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) {}
