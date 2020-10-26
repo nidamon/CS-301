@@ -42,6 +42,19 @@ int cMap::ModifyIndex(int x, int y, int Selected_tile) // Nathan: Added to edit 
 		return 0; // If there is a problem with setting the tiles
 }
 
+int cMap::ModifySolid(int x, int y, bool One) // Nathan: Added to edit the impassable tiles more easily
+{
+	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
+	{
+		if (One)
+			m_solids[y * nWidth + x] = 1;
+		else
+			m_solids[y * nWidth + x] = 0;
+	}
+	else
+		return 0; // If there is a problem with setting the tiles
+}
+
 int cMap::GetIndex(int x, int y)
 {
 	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
@@ -90,7 +103,7 @@ cMap_Plains::cMap_Plains()
 bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_random_engine& e1)
 {
 
-	for (int i = 0; i < 40; i++)
+	for (int i = 0; i < 1; i++)
 	{
 		std::uniform_int_distribution<int> uniform_dist(0, 128);
 		cDynamic* g1 = new cDynamic_Creature_Rabbit();

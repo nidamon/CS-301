@@ -70,6 +70,7 @@ private:
 	// Nathan: Added these variables
 	bool Teleport = false;
 	bool Editor = false;
+	bool Draw_impassables = false;
 	int Selected_tile = 0;
 	int editorY_adjustment = 0;
 	float Player_speed = 4.0f;
@@ -79,6 +80,8 @@ private:
 	float YearLength = 60.0f; // Seconds
 	vector<cDynamic*> m_nvecDynamics_que; // Ques up the new creatures to be placed in the world
 	int Dynamic_Cap = 50; // Set a limit to the number of creatures
+
+	// Remove
 	float Repulsion = 2.2f; // How fast the creatures will repel each other when overlapping
 	float RepulsionRate = 15.0f; // How fast creatures are repulsed
 	//int Zoom = 1;
@@ -96,7 +99,7 @@ protected:
 		m_pPlayer = new cDynamic_Creature("player", DecalMap::get().GetDecal("TestSpriteSheet"));
 		m_pPlayer->_posx = 5.0f;
 		m_pPlayer->_posy = 5.0f;
-		m_pPlayer->_GrowthStage = 2;
+		m_pPlayer->_GrowthStage = 3;
 		m_pPlayer->_Mass = 8.0f; // Pay no attention the lightweight Player!
 		m_pPlayer->_DynamicRadius = 0.6f;
 
@@ -152,6 +155,20 @@ protected:
 						}
 						cout << endl;
 					}
+				}
+				// Nathan: Added impassable tile editing
+				if (GetKey(I).bPressed)
+				{
+						if (Draw_impassables)
+						{
+							Draw_impassables = false;
+							cout << "Impassable tile editing disabled" << endl;
+						}
+						else
+						{
+							Draw_impassables = true;
+							cout << "Impassable tile editing enabled" << endl;
+						}
 				}
 				// Nathan: Added speed hacks
 				if (GetKey(V).bHeld) // Second mouse button
@@ -291,38 +308,42 @@ protected:
 			float fNewObjectPosY = object->_posy + object->_vely * fElapsedTime;
 
 			// Collision
-			float fBorder = 0.1f;
-			if (object->_velx <= 0)
+			float fBorder = 0.1f; // Nathan: Made adjustments to the tile collision code
+			if (object->_velx < 0 || object->_collision_velx < 0)
 			{
-				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder, object->_posy + fBorder + 0.0f) || m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder, object->_posy + (1.0f - fBorder)))
+				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder, object->_posy + fBorder + 0.0f) || m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder, object->_posy + (1.0f - fBorder) + 0.0f))
 				{
-					fNewObjectPosX = (int)fNewObjectPosX + 1;
+					fNewObjectPosX = (int)fNewObjectPosX + 1.0f - fBorder + 0.001f;
 					object->_velx = 0;
+					object->_collision_velx = 0;
 				}
 			}
-			else
+			else if(object->_velx > 0 || object->_collision_velx > 0)
 			{
-				if (m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), object->_posy + fBorder + 0.0f) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), object->_posy + (1.0f - fBorder)))
+				if (m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), object->_posy + fBorder + 0.0f) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), object->_posy + (1.0f - fBorder) + 0.0f))
 				{
-					fNewObjectPosX = (int)fNewObjectPosX;
+					fNewObjectPosX = (int)fNewObjectPosX + fBorder - 0.001f;
 					object->_velx = 0;
+					object->_collision_velx = 0;
 				}
 			}
 
-			if (object->_vely <= 0)
+			if (object->_vely < 0 || object->_collision_vely < 0)
 			{
-				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder + 0.0f, fNewObjectPosY + fBorder) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), fNewObjectPosY + 0.0f))
+				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder + 0.0f, fNewObjectPosY + fBorder) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), fNewObjectPosY + fBorder))
 				{
-					fNewObjectPosY = (int)fNewObjectPosY + 1;
+					fNewObjectPosY = (int)fNewObjectPosY + 1.0f - fBorder + 0.001f;
 					object->_vely = 0;
+					object->_collision_vely = 0;
 				}
 			}
-			else
+			else if (object->_vely > 0 || object->_collision_vely > 0)
 			{
 				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder + 0.0f, fNewObjectPosY + (1.0f - fBorder)) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), fNewObjectPosY + (1.0f - fBorder)))
 				{
-					fNewObjectPosY = (int)fNewObjectPosY;
+					fNewObjectPosY = (int)fNewObjectPosY + fBorder - 0.001f;
 					object->_vely = 0;
+					object->_collision_vely = 0;
 				}
 			}
 
@@ -416,22 +437,7 @@ protected:
 							// Finding X component
 							float Xval = cos(atan((object->_posx - dyn->_posx) / (object->_posy - dyn->_posy)));
 
-							//// Set the velocity in the x and y directions
-							//float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)object)->_Mass);
-							//if ((dyn->_posx - object->_posx) < 0.0f)
-							//	((cDynamic_Creature*)dyn)->_vely += -YComponent * fElapsedTime;
-							//else
-							//	((cDynamic_Creature*)dyn)->_vely += YComponent * fElapsedTime;
-
-
-							//float XComponent = (Overlap) * (Xval) * (((cDynamic_Creature*)object)->_Mass);
-							//if ((dyn->_posx - object->_posx) < 0.0f)
-							//	((cDynamic_Creature*)dyn)->_velx += -XComponent * fElapsedTime;
-							//else
-							//	((cDynamic_Creature*)dyn)->_velx += XComponent * fElapsedTime;
-
-
-
+							// Set the velocity in the x and y directions
 							float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)dyn)->_Mass);
 							if ((object->_posx - dyn->_posx) < 0.0f)
 							{
@@ -537,6 +543,25 @@ protected:
 				DrawPartialDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, m_pCurrentMap->pDecal, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 });
 			}
 		}
+
+		// Nathan: Draw impassable icon on the solid tiles
+		if (Draw_impassables)
+		{
+			for (int x = -1; x < nVisibleTilesX + 1; x++)
+			{
+				for (int y = -1; y < nVisibleTilesY + 1; y++)
+				{
+					if (m_pCurrentMap->GetSolid(x + fOffsetX, y + fOffsetY))
+						DrawDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, DecalMap::get().GetDecal("Impassable"));
+				}
+			}
+
+			if (GetMouse(0).bHeld) // If left mouse click + hold - > continues to place until not held
+				m_pCurrentMap->ModifySolid(int((fOffsetX * nTileHeight + GetMouseX()) / 16), int((fOffsetY * nTileHeight + GetMouseY()) / 16), true); // Set impassable
+			else if (GetMouse(1).bHeld) // If right mouse click + hold - > continues to place until not held
+				m_pCurrentMap->ModifySolid(int((fOffsetX * nTileHeight + GetMouseX()) / 16), int((fOffsetY * nTileHeight + GetMouseY()) / 16), false); // Set passable
+		}
+
 		// Nathan: added the mouse click teleport
 		if (Teleport)
 		{

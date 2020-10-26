@@ -37,6 +37,9 @@ void DecalMap::LoadDecals()
 	// Environment
 	load("Tree1", "./Sprites/Environment/Tree1.png");
 
+	// Map Testing
+	load("Impassable", "./Sprites/Environment/Impassable.png");
+
 	// User Interface
 		// Unimplemented
 }

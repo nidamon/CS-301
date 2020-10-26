@@ -39,6 +39,7 @@ public:
 	olc::Decal* pDecal;
 
 	int ModifyIndex(int x, int y, int Selected_tile); // Nathan: Added to edit maps more easily
+	int ModifySolid(int x, int y, bool One); // Nathan: Added to edit the impassable tiles more easily
 	int GetIndex(int x, int y);
 	bool GetSolid(int x, int y);
 	bool Create(string fileData, olc::Decal* Decal, string name);
