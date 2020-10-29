@@ -31,8 +31,10 @@ void DecalMap::LoadDecals()
 	load("Plains", "./Sprites/Environment/PlainsTileSet.png");
 
 	// Creatures
+	load("Status", "./Sprites/Creatures/StatusBars.png");
 	load("TestSpriteSheet", "./Sprites/Creatures/TestSpriteSheet.png");
 	load("Rabbit", "./Sprites/Creatures/Rabbit.png");
+	load("Fox", "./Sprites/Creatures/Fox.png");
 
 	// Environment
 	load("Tree1", "./Sprites/Environment/Tree1.png");

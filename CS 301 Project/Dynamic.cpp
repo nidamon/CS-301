@@ -47,18 +47,31 @@ cDynamic_Creature::cDynamic_Creature(string name, olc::Decal* sprite) : cDynamic
 	m_fstateTick = 0.5f;
 	_bRedundant = false;
 	_bIsAttackable = true;
-
-	_DurationBeforeDeletion = 5.0f; // Nathan: Added the below variables
+	
+	// Nathan: Added the below variables
+	_DurationBeforeDeletion = 9.0f; 
 	_bMingle = false;
 	_bHasMingled = false;
 	_GrowthStage = 0;
 	_age = 0.0f;
-	_fullness = 70; // % amount
+	_fullness = 100; // % amount
 	_cGender = 'M';
 	_DynamicRadius = 0.5f;
+
+	_bHunt = false;
+	_bNoTarget = true;
+	_bTargetSelected = false;
+	_fCooldown = 0.0f;
+	_AttackDmg = 5;
+	_Meatleft = 100;
+	_EatAmount = 20;
+	_fEatCooldown = 0.0f;
+	_FoodChain = 0;
+	_Target = nullptr;
+	_fSpeed = 1.0f;
 }
 
-void cDynamic_Creature::Update(float fElapsedTime, int season, cDynamic* player)
+void cDynamic_Creature::Update(float fElapsedTime, int season, cDynamic* target)
 {
 	m_fTimer += fElapsedTime;
 	if (m_fTimer >= 0.2f)
@@ -81,7 +94,10 @@ void cDynamic_Creature::Update(float fElapsedTime, int season, cDynamic* player)
 	if (_vely < -0.1f) m_nFacingDirection = NORTH;
 	if (_vely > 0.1f) m_nFacingDirection = SOUTH;
 
-	Behaviour(fElapsedTime, season, player);////////////////////////////////////////////////////
+	if (_nHealth <= 0)
+		_bSolidVsDyn = false;
+
+	Behaviour(fElapsedTime, season, target);////////////////////////////////////////////////////
 }
 
 void cDynamic_Creature::DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety)
@@ -115,10 +131,23 @@ void cDynamic_Creature::DrawSelf(PixelGameEngine* gfx, float offsetx, float offs
 	if (_GrowthStage == 3)
 		growthscale = 1.0f;
 
-	gfx->DrawPartialDecal({ (_posx - offsetx) * 16.0f, (_posy - offsety) * 16.0f }, m_pDecal, { nSheetOffsetX, nSheetOffsetY }, { 16, 16 }, { growthscale, growthscale });
+	gfx->DrawPartialDecal( // Sprite
+		{ (_posx - offsetx) * 16.0f, (_posy - offsety) * 16.0f }, 
+		m_pDecal, { nSheetOffsetX, nSheetOffsetY }, { 16, 16 }, 
+		{ growthscale, growthscale });
+
+	gfx->DrawPartialDecal( // Health bar
+		{ (_posx - offsetx) * 16.0f + 3.0f, (_posy - offsety - 0.2f) * 16.0f },
+		DecalMap::get().GetDecal("Status"), { 10.0f - 10.0f * ((float)_nHealth / (float)_nHealthMax), 0 }, { 10, 1 },
+		{ growthscale, growthscale });
+
+	gfx->DrawPartialDecal( // Fullness bar
+		{ (_posx - offsetx) * 16.0f + 3.0f, (_posy - offsety - 0.1f) * 16.0f },
+		DecalMap::get().GetDecal("Status"), { 10.0f - (float)(_fullness / 10), 1 }, { 10, 1 },
+		{ growthscale, growthscale });
 }
 
-void cDynamic_Creature::Behaviour(float fElapsedTime, int season, cDynamic* player)
+void cDynamic_Creature::Behaviour(float fElapsedTime, int season, cDynamic* target)
 {
 	// No default behaviour
 }
@@ -143,20 +172,29 @@ cDynamic_Creature_Rabbit::cDynamic_Creature_Rabbit() : cDynamic_Creature("Rabbit
 	_bHasMingled = false;
 	_Mass = 1.5f; // baby rabbit weight
 	_DynamicRadius = 0.25f; // Rabbits are small right?
+
+	_bHunt = false;
+	_bNoTarget = true;
+	_bTargetSelected = false;
+	_Meatleft = 70;
+	_EatAmount = 8;
+	_fEatCooldown = 0.0f;
+	_FoodChain = 1;
+	_fSpeed = 0.6f;
 }
 
-void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynamic* player)
+void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynamic* target)
 {
 	// Check if player is nearby
-	float fTargetX = player->_posx - _posx;
-	float fTargetY = player->_posy - _posy;
+	float fTargetX = target->_posx - _posx;
+	float fTargetY = target->_posy - _posy;
 	float fDistance = sqrtf(fTargetX * fTargetX + fTargetY * fTargetY);
 
 
 	if (_nHealth > 0) // If the rabbit is still alive
 	{
 
-		if (_age < 300.0f) // Nathan: Added for aging
+		if (_age < 100.0f) // Nathan: Added for aging
 		{
 			_age += fElapsedTime; ///////////////////////////////////////////////###################################
 			if (_age >= 30.0f && _age < 60.0f)
@@ -197,10 +235,10 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 				_velx = 0.0f;
 				break;
 			case 1:
-				_velx = 2.0f;
+				_velx = _fSpeed;
 				break;
 			case 2:
-				_velx = -2.0f;
+				_velx = -_fSpeed;
 				break;
 			default:
 				break;
@@ -211,10 +249,10 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 				_vely = 0.0f;
 				break;
 			case 1:
-				_vely = 2.0f;
+				_vely = _fSpeed;
 				break;
 			case 2:
-				_vely = -2.0f;
+				_vely = -_fSpeed;
 				break;
 			default:
 				break;
@@ -240,5 +278,184 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 		_DurationBeforeDeletion -= fElapsedTime;
 		if (_DurationBeforeDeletion < 0.0f)
 			_bRedundant = true;
+	}
+}
+
+//##################################################################################################
+
+
+cDynamic_Creature_Fox::cDynamic_Creature_Fox() : cDynamic_Creature("Fox", DecalMap::get().GetDecal("Fox"))
+{
+	_bFriendly = false;
+	_nHealth = 50;
+	_nHealthMax = 50;
+	m_fstateTick = 1.0f;
+	_bIsAttackable = true;
+	_bRedundant = false;
+	_bMingle = false;
+	_bHasMingled = false;
+	_Mass = 3.0f;
+	_DynamicRadius = 0.4f;
+
+	_bHunt = false;
+	_bNoTarget = true;
+	_bTargetSelected = false;
+	_fCooldown = 0.0f;
+	_AttackDmg = 5;
+	_Meatleft = 100;
+	_EatAmount = 10;
+	_fEatCooldown = 0.0f;
+	_FoodChain = 2;
+	_Target = nullptr;
+	_fSpeed = 0.8f;
+}
+
+void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* target)
+{
+	if (_nHealth > 0) // If the Fox is still alive
+	{
+		if (_age < 100.0f) // Nathan: Added for aging
+		{
+			_age += fElapsedTime;
+			if (_age >= 30.0f && _age < 60.0f)
+			{
+				_Mass = 3.0f;
+				_GrowthStage = 1;
+			}
+			if (_age >= 60.0f && _age < 90.0f)
+			{
+				_Mass = 4.0f;
+				_GrowthStage = 2;
+			}
+			if (_age >= 90.0f)
+			{
+				_Mass = 5.0f;
+				_GrowthStage = 3;
+			}
+
+		}
+
+		if (_GrowthStage == 3 && season == 1 && !_bHasMingled)
+			_bMingle = true;
+		if (_GrowthStage == 3 && season != 1)
+		{
+			_bHasMingled = false;
+		}
+
+		if (_fullness < 40)
+			_bHunt = true;
+		if (_fullness > 90)
+		{
+			_bHunt = false;
+			_bTargetSelected = false;
+			_bNoTarget = true;
+		}
+
+		if (_bTargetSelected) //Path finding here
+		{
+			// Check if _Target is nearby
+			float fTargetX = _Target->_posx - _posx;
+			float fTargetY = _Target->_posy - _posy;
+			float fDistance = sqrtf(fTargetX * fTargetX + fTargetY * fTargetY);
+			if (fDistance < 6.0f)
+			{
+				_velx = (fTargetX / fDistance) * _fSpeed;
+				_vely = (fTargetY / fDistance) * _fSpeed;
+			}
+			else
+			{
+				_velx = 0;
+				_vely = 0;
+			}
+		}
+		if (!_bNoTarget)
+		{
+			if (!_Target->_bRedundant)
+			{
+				if ((int)_Target->_posx == (int)_posx && (int)_Target->_posy == (int)_posy)
+				{
+					if (_fCooldown <= 0.0f && ((cDynamic_Creature*)_Target)->_nHealth > 0.0f)
+					{
+						((cDynamic_Creature*)_Target)->_nHealth -= _AttackDmg;
+						_fCooldown += 2.0f;
+					}
+					else
+						_fCooldown -= fElapsedTime;
+
+					if (((cDynamic_Creature*)_Target)->_nHealth <= 0 && ((cDynamic_Creature*)_Target)->_Meatleft > 0 && _fEatCooldown <= 0.0f)
+					{
+						if (((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount < 0)
+						{
+							_fullness += ((cDynamic_Creature*)_Target)->_Meatleft;
+							((cDynamic_Creature*)_Target)->_Meatleft = 0;
+							((cDynamic_Creature*)_Target)->_bRedundant = true;
+						}
+						if (((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount > 0)
+						{
+							((cDynamic_Creature*)_Target)->_Meatleft -= _EatAmount;
+							_fullness += _EatAmount;
+						}
+						_fEatCooldown += 2.0f;
+					}
+					else
+						_fEatCooldown -= fElapsedTime;
+				}
+			}
+			if (_Target->_bRedundant)
+				_bNoTarget = true;
+		}
+		m_fstateTick -= fElapsedTime;
+		if (m_fstateTick <= 0.0f)
+		{
+			switch (rand() % 3) // Get movement on x-axis
+			{
+			case 0:
+				_velx = 0.0f;
+				break;
+			case 1:
+				_velx = _fSpeed;
+				break;
+			case 2:
+				_velx = -_fSpeed;
+				break;
+			default:
+				break;
+			}
+			switch (rand() % 3) // Get movement on y-axis
+			{
+			case 0:
+				_vely = 0.0f;
+				break;
+			case 1:
+				_vely = _fSpeed;
+				break;
+			case 2:
+				_vely = -_fSpeed;
+				break;
+			default:
+				break;
+			}
+
+
+			_fullness -= 3;
+			if (_fullness < 15)
+				_nHealth -= 3;
+			if (_fullness < 0)
+				_fullness = 0;
+
+			m_fstateTick += ((float)(rand() % 20) * 0.1f + 1.5f);
+		}
+	}
+	else // Nathan: Added for death
+	{
+		_velx = 0;
+		_vely = 0;
+		_DurationBeforeDeletion -= fElapsedTime;
+		if (_DurationBeforeDeletion < 0.0f)
+		{
+			//std::cout << "Fox removed with " << _nHealth << "health at (" << _posx << "," << _posy << ").";
+			_bRedundant = true;
+		}
+
 	}
 }

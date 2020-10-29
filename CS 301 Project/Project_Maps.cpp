@@ -103,14 +103,14 @@ cMap_Plains::cMap_Plains()
 bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_random_engine& e1)
 {
 
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < 40; i++)
 	{
 		std::uniform_int_distribution<int> uniform_dist(0, 128);
 		cDynamic* g1 = new cDynamic_Creature_Rabbit();
 		vecDyns.push_back(g1);
 		g1->_posx = uniform_dist(e1) % 15 + 5.0f;
-		g1->_posy = uniform_dist(e1) % 15 + 5.0f;
-		((cDynamic_Creature*)g1)->_age = 90;
+		g1->_posy = uniform_dist(e1) % 7 + 1.0f;
+		((cDynamic_Creature*)g1)->_age = 90.0f;
 		if (uniform_dist(e1) % 2 == 0)
 		{
 			((cDynamic_Creature*)g1)->_cGender = 'M';
@@ -121,9 +121,29 @@ bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_rand
 			((cDynamic_Creature*)g1)->_cGender = 'F';
 			std::cout << "Female Rabbit created" << std::endl;
 		}
+	}
+	for (int i = 0; i < 20; i++)
+	{
+		std::uniform_int_distribution<int> uniform_dist(0, 128);
+		cDynamic* g1 = new cDynamic_Creature_Fox();
+		vecDyns.push_back(g1);
+		g1->_posx = uniform_dist(e1) % 15 + 5.0f;
+		g1->_posy = uniform_dist(e1) % 7 + 1.0f;
+		((cDynamic_Creature*)g1)->_age = 90.0f;
+		if (uniform_dist(e1) % 2 == 0)
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'M';
+			std::cout << "Male Fox created" << std::endl;
+		}
+		else
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'F';
+			std::cout << "Female Fox created" << std::endl;
+		}
 
 	}
 	std::cout << std::endl;
+
 
 	/*cDynamic_Creature* tree1 = new cDynamic_Creature("Tree", DecalMap::get().GetDecal("Tree1"));
 	tree1->_posx = 15.0f;

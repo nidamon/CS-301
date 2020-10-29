@@ -79,7 +79,7 @@ private:
 	int season = 1; // 1 = spring, 2 = summer, 3 = fall, 4 = winter
 	float YearLength = 60.0f; // Seconds
 	vector<cDynamic*> m_nvecDynamics_que; // Ques up the new creatures to be placed in the world
-	int Dynamic_Cap = 50; // Set a limit to the number of creatures
+	int Dynamic_Cap = 80; // Set a limit to the number of creatures
 
 	// Remove
 	float Repulsion = 2.2f; // How fast the creatures will repel each other when overlapping
@@ -309,7 +309,7 @@ protected:
 
 			// Collision
 			float fBorder = 0.1f; // Nathan: Made adjustments to the tile collision code
-			if (object->_velx < 0 || object->_collision_velx < 0)
+			if (object->_velx + object->_collision_velx < 0)
 			{
 				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder, object->_posy + fBorder + 0.0f) || m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder, object->_posy + (1.0f - fBorder) + 0.0f))
 				{
@@ -318,7 +318,7 @@ protected:
 					object->_collision_velx = 0;
 				}
 			}
-			else if(object->_velx > 0 || object->_collision_velx > 0)
+			else if(object->_velx + object->_collision_velx > 0)
 			{
 				if (m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), object->_posy + fBorder + 0.0f) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), object->_posy + (1.0f - fBorder) + 0.0f))
 				{
@@ -328,7 +328,7 @@ protected:
 				}
 			}
 
-			if (object->_vely < 0 || object->_collision_vely < 0)
+			if (object->_vely + object->_collision_vely < 0)
 			{
 				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder + 0.0f, fNewObjectPosY + fBorder) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), fNewObjectPosY + fBorder))
 				{
@@ -337,7 +337,7 @@ protected:
 					object->_collision_vely = 0;
 				}
 			}
-			else if (object->_vely > 0 || object->_collision_vely > 0)
+			else if (object->_vely + object->_collision_vely > 0)
 			{
 				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder + 0.0f, fNewObjectPosY + (1.0f - fBorder)) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), fNewObjectPosY + (1.0f - fBorder)))
 				{
@@ -395,12 +395,12 @@ protected:
 										cDynamic* g1 = new cDynamic_Creature_Rabbit();
 										Que(g1, m_nvecDynamics_que, dyn, object);
 									}
-									/*if (((cDynamic_Creature*)dyn)->_sName == "Fox")
+									if (((cDynamic_Creature*)dyn)->_sName == "Fox")
 									{
 										cDynamic* g1 = new cDynamic_Creature_Fox();
 										Que(g1, m_nvecDynamics_que, dyn, object);
 									}
-									if (((cDynamic_Creature*)dyn)->_sName == "Bear")
+									/*if (((cDynamic_Creature*)dyn)->_sName == "Bear")
 									{
 										cDynamic* g1 = new cDynamic_Creature_Bear();
 										Que(g1, m_nvecDynamics_que, dyn, object);
@@ -429,6 +429,9 @@ protected:
 						// Check if circles overlap
 						if (Overlap > 0.0f)
 						{
+							// Nathan: We need some interaction as I forgot to add it back in.
+							interaction(dyn, object, m_nvecDynamics_que);
+
 							// Count the number of objects colliding with
 							object->_number_collisions++;
 
@@ -496,7 +499,32 @@ protected:
 
 			object->_posx = fDynamicObjectPosX + (object->_collision_velx + object->_velx) * fElapsedTime; // ~32:12
 			object->_posy = fDynamicObjectPosY + (object->_collision_vely + object->_vely) * fElapsedTime;
-			
+
+			// Nathan: Check for hunting
+			if (((cDynamic_Creature*)object)->_bHunt && ((cDynamic_Creature*)object)->_bNoTarget)
+			{
+				float fDistance = 200.0f;
+				for (auto dyn : m_nvecDynamics)
+				{
+					if (((cDynamic_Creature*)dyn)->_FoodChain <= ((cDynamic_Creature*)object)->_FoodChain
+						&& ((cDynamic_Creature*)dyn)->_sName != ((cDynamic_Creature*)object)->_sName)
+					{
+						// Check if _Target is nearby
+						float fTargetX = dyn->_posx - ((cDynamic_Creature*)object)->_posx;
+						float fTargetY = dyn->_posy - ((cDynamic_Creature*)object)->_posy;
+						float NewfDistance = sqrtf(fTargetX * fTargetX + fTargetY * fTargetY);
+						if (NewfDistance < fDistance)
+						{
+							fDistance = NewfDistance;
+							((cDynamic_Creature*)object)->_bTargetSelected = true;
+							((cDynamic_Creature*)object)->_bNoTarget = false;
+							((cDynamic_Creature*)object)->_Target = dyn;
+						}
+					}
+						
+
+				}
+			}
 
 			object->Update(fElapsedTime, season, m_nvecDynamics[0]);
 		}
@@ -597,7 +625,7 @@ protected:
 		m_pPlayer->DrawSelf(this, fOffsetX, fOffsetY);
 
 		if (UpdateLocalMap(fElapsedTime))
-			cout << "A Lifeform has been erased..." << endl; // <- Nathan: added this for console
+			cout << "A Dynamic Creature has been erased..." << endl; // <- Nathan: added this for console
 
 		return true;
 	}

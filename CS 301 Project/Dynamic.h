@@ -38,7 +38,7 @@ public:
 
 public:
 	virtual void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) {}
-	virtual void Update(float fElapsedTime, int season, cDynamic* player = nullptr) {}
+	virtual void Update(float fElapsedTime, int season, cDynamic* target = nullptr) {}
 };
 
 //##################################################################################################
@@ -59,7 +59,8 @@ public:
 	int _nHealth;
 	int _nHealthMax;
 
-	float _DurationBeforeDeletion; // Nathan: Added the below variables
+	// Nathan: Added the below variables
+	float _DurationBeforeDeletion; 
 	bool _bMingle;
 	bool _bHasMingled;
 	int _GrowthStage;
@@ -68,10 +69,22 @@ public:
 	char _cGender;
 	float _DynamicRadius; // Gives the radius for dynamic collision repulsion
 
+	bool _bHunt;
+	bool _bNoTarget;
+	bool _bTargetSelected;
+	float _fCooldown;
+	int _AttackDmg;
+	int _Meatleft;
+	int _EatAmount;
+	float _fEatCooldown;
+	int _FoodChain;
+	cDynamic* _Target;
+	float _fSpeed;
+
 public:
 	void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) override;
-	virtual void Update(float fElapsedTime, int season, cDynamic* player = nullptr) override;
-	virtual void Behaviour(float fElapsedTime, int season, cDynamic* player = nullptr);
+	virtual void Update(float fElapsedTime, int season, cDynamic* target = nullptr) override;
+	virtual void Behaviour(float fElapsedTime, int season, cDynamic* target = nullptr);
 	int GetFacingDirection();
 
 protected:
@@ -85,8 +98,17 @@ class cDynamic_Creature_Rabbit : public cDynamic_Creature
 {
 public:
 	cDynamic_Creature_Rabbit();
-	virtual void Behaviour(float fElapsedTime, int season, cDynamic* player = nullptr) override;
+	virtual void Behaviour(float fElapsedTime, int season, cDynamic* target = nullptr) override;
 
 };
 
+//##################################################################################################
+
+class cDynamic_Creature_Fox : public cDynamic_Creature
+{
+public:
+	cDynamic_Creature_Fox();
+	virtual void Behaviour(float fElapsedTime, int season, cDynamic* target = nullptr) override;
+
+};
 #endif /* DYNAMIC */
