@@ -632,7 +632,7 @@ protected:
 
 				int sx = Selected_tile % 10;
 				int sy = Selected_tile / 10;
-				DrawPartialDecal({ float(GetMouseX()), float(GetMouseY()) }, m_pCurrentMap->pDecal, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 }, { 3.0f, 3.0f });
+				DrawPartialDecal({ float(GetMouseX()), float(GetMouseY()) }, m_pCurrentMap->pDecal, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 }, { 0.8f, 0.8f });
 
 				if (GetMouse(0).bHeld) // If left mouse click + hold - > continues to place until not held
 					for (int x = xstart; x < xfinish; x++)

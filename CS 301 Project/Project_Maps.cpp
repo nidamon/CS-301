@@ -17,11 +17,19 @@ using std::vector;
 #include <random>
 using std::random_device;
 
+extern "C" int DimensionsSet(int, int); // Sets the width and height
+
+extern "C" char CharSet(char); // Sets a char value
+extern "C" char CharGridModify(int, int); // Modifies the char grid
+extern "C" char CharGridGet(int, int); // Reads from the char grid and returns tile value
+
+extern "C" int BoolGridModify(int, int); // Modifies the bool grid
+extern "C" int BoolGridGet(int, int); // Reads from the bool grid and returns collision bool
+
 
 cMap::cMap()
 {
 	pDecal = nullptr;
-	//pDecalV = { nullptr };
 	nWidth = 0;
 	nHeight = 0;
 	m_solids = nullptr;
@@ -37,19 +45,33 @@ cMap::~cMap()
 int cMap::ModifyIndex(int x, int y, int Selected_tile) // Nathan: Added to edit maps more easily
 {
 	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
-		m_indices[y * nWidth + x] = Selected_tile;
+	{
+		CharSet(Selected_tile); // Send the tile to assembly as an 8bit value
+		// Set specified x,y value to the char sent to above
+		CharGridModify(x, y); // (rcx, rdx)
+	}
 	else
 		return 0; // If there is a problem with setting the tiles
+
+
 }
 
 int cMap::ModifySolid(int x, int y, bool One) // Nathan: Added to edit the impassable tiles more easily
 {
 	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
 	{
-		if (One)
-			m_solids[y * nWidth + x] = 1;
-		else
-			m_solids[y * nWidth + x] = 0;
+		if (One) // Set to 1
+		{
+			if (BoolGridGet(x, y) == 0)
+				// Set specified value to its opposite
+				BoolGridModify(x, y); // (rcx, rdx)
+		}
+		else // Set to 0
+		{
+			if (BoolGridGet(x, y) == 1)
+				// Set specified value to its opposite
+				BoolGridModify(x, y); // (rcx, rdx)
+		}
 	}
 	else
 		return 0; // If there is a problem with setting the tiles
@@ -58,7 +80,10 @@ int cMap::ModifySolid(int x, int y, bool One) // Nathan: Added to edit the impas
 int cMap::GetIndex(int x, int y)
 {
 	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
-		return m_indices[y * nWidth + x];
+	{
+		// Get the value at the specified coordinates
+		return (int)CharGridGet(x, y);
+	}
 	else
 		return 0; // If there is a problem with accessed information
 }
@@ -66,7 +91,10 @@ int cMap::GetIndex(int x, int y)
 bool cMap::GetSolid(int x, int y)
 {
 	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
-		return m_solids[y * nWidth + x];
+	{
+		// Get the value at the specified coordinates
+		return BoolGridGet(x, y); // (rcx, rdx)
+	}
 	else
 		return 0; // If there is a problem with accessed information
 }
@@ -79,16 +107,30 @@ bool cMap::Create(string fileData, olc::Decal* Decal, string name)
 	if (data.is_open())
 	{
 		data >> nWidth >> nHeight;
+		if (nWidth * nHeight > 64 * 64)
+			std::cout << "Dimensions error: Assembly too small." << std::endl;
+		DimensionsSet(nWidth, nHeight); // Send dimensions to assembly
 		m_solids = new bool[nWidth * nHeight];
 		m_indices = new int[nWidth * nHeight];
-		for (int i = 0; i < nWidth * nHeight; i++)
+
+		int TempTileValue = 0;
+		bool TempSolidValue = 0;
+		for (int y = 0; y < nHeight; y++)
 		{
-			data >> m_indices[i];
-			if (m_indices[i] < 0 || m_indices[i] > 99)
-				m_indices[i] = 0;
-			data >> m_solids[i];
-			if (m_solids[i] < 0 || m_solids[i] > 1)
-				m_solids[i] = 0;
+			for (int x = 0; x < nWidth; x++)
+			{
+				data >> TempTileValue;
+				if (TempTileValue < 0 || TempTileValue > 99)
+					TempTileValue = 0;
+
+				CharSet(TempTileValue); // Send the tile to assembly as an 8bit value
+				// Set specified x,y value to the char sent to above
+				CharGridModify(x, y); // (rcx, rdx)
+
+				data >> TempSolidValue;
+				if (TempSolidValue)// Set specified value to its opposite
+					BoolGridModify(x, y); // (rcx, rdx)
+			}
 		}
 		return true;
 	}
