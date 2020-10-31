@@ -68,18 +68,25 @@ public:
 	int _fullness; // % amount
 	char _cGender;
 	float _DynamicRadius; // Gives the radius for dynamic collision repulsion
+	float _fViewRange; // How far away the creature can see
+	float _fTimeToGrow; // How fast the creatures grow up
 
-	bool _bHunt;
+	bool _bHunt; // Is creature hunting
 	bool _bNoTarget;
 	bool _bTargetSelected;
-	float _fCooldown;
+	float _fCooldown; // Cooldown for attacking
 	int _AttackDmg;
+	float _fReach;
 	int _Meatleft;
 	int _EatAmount;
 	float _fEatCooldown;
 	int _FoodChain;
 	cDynamic* _Target;
 	float _fSpeed;
+
+	float _HungerDegredation;
+	float _fRegenrationTimeForOneHP;
+	float _fRegenTimer;
 
 public:
 	void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) override;
@@ -108,6 +115,16 @@ class cDynamic_Creature_Fox : public cDynamic_Creature
 {
 public:
 	cDynamic_Creature_Fox();
+	virtual void Behaviour(float fElapsedTime, int season, cDynamic* target = nullptr) override;
+
+};
+
+//##################################################################################################
+
+class cDynamic_Creature_Bear : public cDynamic_Creature
+{
+public:
+	cDynamic_Creature_Bear();
 	virtual void Behaviour(float fElapsedTime, int season, cDynamic* target = nullptr) override;
 
 };

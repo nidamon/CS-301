@@ -76,10 +76,11 @@ private:
 	float Player_speed = 4.0f;
 	bool Cheats_allowed = true;
 	float Time = 0;
-	int season = 1; // 1 = spring, 2 = summer, 3 = fall, 4 = winter
+	int season = 4; // 1 = spring, 2 = summer, 3 = fall, 4 = winter
 	float YearLength = 60.0f; // Seconds
 	vector<cDynamic*> m_nvecDynamics_que; // Ques up the new creatures to be placed in the world
 	int Dynamic_Cap = 80; // Set a limit to the number of creatures
+	int BrushSize = 0;
 
 	// Remove
 	float Repulsion = 2.2f; // How fast the creatures will repel each other when overlapping
@@ -102,6 +103,8 @@ protected:
 		m_pPlayer->_GrowthStage = 3;
 		m_pPlayer->_Mass = 8.0f; // Pay no attention the lightweight Player!
 		m_pPlayer->_DynamicRadius = 0.6f;
+		m_pPlayer->_nHealthMax = 400;
+		m_pPlayer->_nHealth = 400;
 
 		m_nvecDynamics.push_back(m_pPlayer); // Put player in the vector first
 		m_pCurrentMap->PopulateDynamics(m_nvecDynamics, e1);
@@ -169,6 +172,17 @@ protected:
 							Draw_impassables = true;
 							cout << "Impassable tile editing enabled" << endl;
 						}
+				}
+				// Nathan: Added brush sizes
+				if (GetKey(B).bHeld) // Second mouse button
+				{
+					if (int(GetMouseWheel()) != 0)
+					{
+						BrushSize += int(GetMouseWheel()) / 120;
+						cout << "BrushSize = " << BrushSize << endl;
+					}
+					if (BrushSize < 0) BrushSize = 0;
+					if (BrushSize > 10) BrushSize = 10;
 				}
 				// Nathan: Added speed hacks
 				if (GetKey(V).bHeld) // Second mouse button
@@ -295,13 +309,14 @@ protected:
 
 		for (auto& object : m_nvecDynamics)
 		{
-			// Check if creature is within the map bounds
-			if (object->_posx < 0 || object->_posx >(m_pCurrentMap->nWidth - 1) ||
-				object->_posy < 0 || object->_posy >(m_pCurrentMap->nHeight - 1))
-			{
-				object->_bRedundant = true;
-				cout << "A " << object->_sName << " got outside the habitat!" << endl;
-			}
+			if (object != m_nvecDynamics[0])
+				// Check if creature is within the map bounds
+				if (object->_posx < 0 || object->_posx >(m_pCurrentMap->nWidth - 1) ||
+					object->_posy < 0 || object->_posy >(m_pCurrentMap->nHeight - 1))
+				{
+					object->_bRedundant = true;
+					cout << "A " << object->_sName << " got outside the habitat!" << endl;
+				}
 
 
 			float fNewObjectPosX = object->_posx + object->_velx * fElapsedTime;
@@ -516,7 +531,7 @@ protected:
 						if (NewfDistance < fDistance)
 						{
 							fDistance = NewfDistance;
-							((cDynamic_Creature*)object)->_bTargetSelected = true;
+							//((cDynamic_Creature*)object)->_bTargetSelected = true;
 							((cDynamic_Creature*)object)->_bNoTarget = false;
 							((cDynamic_Creature*)object)->_Target = dyn;
 						}
@@ -572,49 +587,65 @@ protected:
 			}
 		}
 
-		// Nathan: Draw impassable icon on the solid tiles
-		if (Draw_impassables)
+		// Combined Map editor and impassable editor into one with brushes
+		if (Draw_impassables || Editor)
 		{
-			for (int x = -1; x < nVisibleTilesX + 1; x++)
+			// Size of square changed (brush size)
+			int xstart = int((fOffsetX * nTileHeight + GetMouseX()) / 16) - BrushSize;
+			int xfinish = (int((fOffsetX * nTileHeight + GetMouseX()) / 16) + 1 + BrushSize);
+			int ystart = int((fOffsetY * nTileHeight + GetMouseY()) / 16) - BrushSize;
+			int yfinish = (int((fOffsetY * nTileHeight + GetMouseY()) / 16) + 1 + BrushSize);
+
+			// Nathan: Draw impassable icon on the solid tiles
+			if (Draw_impassables)
 			{
-				for (int y = -1; y < nVisibleTilesY + 1; y++)
+				for (int x = -1; x < nVisibleTilesX + 1; x++)
+					for (int y = -1; y < nVisibleTilesY + 1; y++)
+						if (m_pCurrentMap->GetSolid(x + fOffsetX, y + fOffsetY))
+							DrawDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, DecalMap::get().GetDecal("Impassable"));
+
+				if (GetMouse(0).bHeld || GetMouse(1).bHeld) // If left or right mouse click + hold - > continues to place until not held
 				{
-					if (m_pCurrentMap->GetSolid(x + fOffsetX, y + fOffsetY))
-						DrawDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, DecalMap::get().GetDecal("Impassable"));
+					bool selected = false;
+					if (GetMouse(0).bHeld)
+						selected = true;// Set passable
+					else
+						selected = false; // Set impassable
+
+					for (int x = xstart; x < xfinish; x++)
+						for (int y = ystart; y < yfinish; y++)
+							m_pCurrentMap->ModifySolid(x, y, selected);
 				}
 			}
 
-			if (GetMouse(0).bHeld) // If left mouse click + hold - > continues to place until not held
-				m_pCurrentMap->ModifySolid(int((fOffsetX * nTileHeight + GetMouseX()) / 16), int((fOffsetY * nTileHeight + GetMouseY()) / 16), true); // Set impassable
-			else if (GetMouse(1).bHeld) // If right mouse click + hold - > continues to place until not held
-				m_pCurrentMap->ModifySolid(int((fOffsetX * nTileHeight + GetMouseX()) / 16), int((fOffsetY * nTileHeight + GetMouseY()) / 16), false); // Set passable
-		}
+			// Nathan: Added map editing
+			if (Editor)
+			{
+				if (GetKey(Z).bHeld)
+					if (int(GetMouseWheel()) != 0)
+					{
+						Selected_tile -= int(GetMouseWheel()) / 120;
+						cout << Selected_tile << endl;
+					}
+				if (Selected_tile < 0) Selected_tile = 0; // Hardcoding 100 sprite limitation
+				if (Selected_tile > 99) Selected_tile = 99;
 
+				int sx = Selected_tile % 10;
+				int sy = Selected_tile / 10;
+				DrawPartialDecal({ float(GetMouseX()), float(GetMouseY()) }, m_pCurrentMap->pDecal, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 }, { 3.0f, 3.0f });
+
+				if (GetMouse(0).bHeld) // If left mouse click + hold - > continues to place until not held
+					for (int x = xstart; x < xfinish; x++)
+						for (int y = ystart; y < yfinish; y++)
+							m_pCurrentMap->ModifyIndex(x, y, Selected_tile);
+			}
+		}
 		// Nathan: added the mouse click teleport
 		if (Teleport)
 		{
 			m_pPlayer->_posx = int(fOffsetX + (GetMouseX() / 16));
 			m_pPlayer->_posy = int(fOffsetY + (GetMouseY() / 16));
 			Teleport = false;
-		}
-
-		// Nathan: Added map editing
-		if (Editor)
-		{
-			if (int(GetMouseWheel()) != 0)
-			{
-				Selected_tile += int(GetMouseWheel()) / 120;
-				cout << Selected_tile << endl;
-			}
-			if (Selected_tile < 0) Selected_tile = 0; // Hardcoding 100 sprite limitation
-			if (Selected_tile > 99) Selected_tile = 99;
-
-			int sx = Selected_tile % 10;
-			int sy = Selected_tile / 10;
-			DrawPartialDecal({ float(GetMouseX()), float(GetMouseY()) }, m_pCurrentMap->pDecal, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 });
-
-			if (GetMouse(0).bHeld) // If left mouse click + hold - > continues to place until not held
-				m_pCurrentMap->ModifyIndex(int((fOffsetX * nTileHeight + GetMouseX()) / 16), int((fOffsetY * nTileHeight + GetMouseY()) / 16), Selected_tile);
 		}
 
 
@@ -633,6 +664,26 @@ protected:
 	bool UpdateLocalMap(float fElapsedTime) // Update map
 	{
 		int VecSize = m_nvecDynamics.size(); // <- Nathan: added this for console
+
+		for (auto& object : m_nvecDynamics) // Loop to give information about creatures being deleted
+			if (object->_bRedundant) 
+			{
+				cout << endl;
+				cout << object->_sName << " is being removed." << endl;
+				cout << "Health: " << ((cDynamic_Creature*)object)->_nHealth << endl;
+				cout << "Fullness: " << ((cDynamic_Creature*)object)->_fullness << endl;
+				cout << "Meatleft: " << ((cDynamic_Creature*)object)->_Meatleft << endl;
+				cout << "At: " << ((cDynamic_Creature*)object)->_posx << "," << ((cDynamic_Creature*)object)->_posy << endl;
+				cout << "DurB4Delete: " << ((cDynamic_Creature*)object)->_DurationBeforeDeletion << endl;
+				if (!((cDynamic_Creature*)object)->_bNoTarget)
+				{
+					cout << "Target name: " << ((cDynamic_Creature*)object)->_Target->_sName << endl;
+					cout << "Target Health: " << ((cDynamic_Creature*)((cDynamic_Creature*)object)->_Target)->_nHealth << endl;
+					cout << "Target DurB4Delete: " << ((cDynamic_Creature*)((cDynamic_Creature*)object)->_Target)->_DurationBeforeDeletion << endl;
+				}
+				cout << endl;
+			}
+
 
 		// Erase and delete redundant creatures
 		m_nvecDynamics.erase(

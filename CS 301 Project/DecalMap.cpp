@@ -35,6 +35,7 @@ void DecalMap::LoadDecals()
 	load("TestSpriteSheet", "./Sprites/Creatures/TestSpriteSheet.png");
 	load("Rabbit", "./Sprites/Creatures/Rabbit.png");
 	load("Fox", "./Sprites/Creatures/Fox.png");
+	load("Bear", "./Sprites/Creatures/Bear.png");
 
 	// Environment
 	load("Tree1", "./Sprites/Environment/Tree1.png");

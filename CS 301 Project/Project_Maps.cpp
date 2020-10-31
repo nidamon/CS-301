@@ -84,7 +84,11 @@ bool cMap::Create(string fileData, olc::Decal* Decal, string name)
 		for (int i = 0; i < nWidth * nHeight; i++)
 		{
 			data >> m_indices[i];
+			if (m_indices[i] < 0 || m_indices[i] > 99)
+				m_indices[i] = 0;
 			data >> m_solids[i];
+			if (m_solids[i] < 0 || m_solids[i] > 1)
+				m_solids[i] = 0;
 		}
 		return true;
 	}
@@ -97,15 +101,15 @@ bool cMap::Create(string fileData, olc::Decal* Decal, string name)
 cMap_Plains::cMap_Plains()
 {
 	//		  Map Text file			Tile sets              mapname    Area name
-	Create("./Maps/MapTest2.txt", DecalMap::get().GetDecal("Plains"), "Plains");
+	Create("./Maps/MapPlains1.txt", DecalMap::get().GetDecal("Plains"), "Plains");
 }
 
 bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_random_engine& e1)
 {
-
-	for (int i = 0; i < 40; i++)
+	// Rabbit
+	for (int i = 0; i < 0; i++)
 	{
-		std::uniform_int_distribution<int> uniform_dist(0, 128);
+		std::uniform_int_distribution<int> uniform_dist(0, 128); 
 		cDynamic* g1 = new cDynamic_Creature_Rabbit();
 		vecDyns.push_back(g1);
 		g1->_posx = uniform_dist(e1) % 15 + 5.0f;
@@ -122,7 +126,8 @@ bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_rand
 			std::cout << "Female Rabbit created" << std::endl;
 		}
 	}
-	for (int i = 0; i < 20; i++)
+	// Fox
+	for (int i = 0; i < 0; i++)
 	{
 		std::uniform_int_distribution<int> uniform_dist(0, 128);
 		cDynamic* g1 = new cDynamic_Creature_Fox();
@@ -142,8 +147,29 @@ bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_rand
 		}
 
 	}
-	std::cout << std::endl;
+	// Bear
+	for (int i = 0; i < 0; i++)
+	{
+		std::uniform_int_distribution<int> uniform_dist(0, 128);
+		cDynamic* g1 = new cDynamic_Creature_Bear();
+		vecDyns.push_back(g1);
+		g1->_posx = uniform_dist(e1) % 15 + 5.0f;
+		g1->_posy = uniform_dist(e1) % 7 + 1.0f;
+		((cDynamic_Creature*)g1)->_age = 90.0f;
+		if (uniform_dist(e1) % 2 == 0)
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'M';
+			std::cout << "Male Bear created" << std::endl;
+		}
+		else
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'F';
+			std::cout << "Female Bear created" << std::endl;
+		}
 
+	}
+	
+	std::cout << std::endl;
 
 	/*cDynamic_Creature* tree1 = new cDynamic_Creature("Tree", DecalMap::get().GetDecal("Tree1"));
 	tree1->_posx = 15.0f;
@@ -163,10 +189,10 @@ bool cMap_Plains::OnInteraction(vector<cDynamic*>& vecDynobject, cDynamic* targe
 			target->_bSolidVsDyn = true;
 	}
 
-	if (target->_sName == "Rabbit")
+	if (target->_sName == "Rabbit" || target->_sName == "Fox" || target->_sName == "Bear")
 	{
-		cDynamic_Creature_Rabbit* dyn = (cDynamic_Creature_Rabbit*)target;
-		dyn->_nHealth = max(dyn->_nHealth - 5, 0);
+		cDynamic_Creature* dyn = (cDynamic_Creature*)target;
+		dyn->_nHealth = max(dyn->_nHealth - 15, 0);
 	}
 
 
