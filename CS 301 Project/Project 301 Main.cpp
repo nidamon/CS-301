@@ -70,6 +70,7 @@ private:
 	// Nathan: Added these variables
 	bool Teleport = false;
 	bool Editor = false;
+	bool OverlayEditor = false;
 	bool Draw_impassables = false;
 	int Selected_tile = 0;
 	int editorY_adjustment = 0;
@@ -151,12 +152,27 @@ protected:
 					{
 						for (int x = 0; x < m_pCurrentMap->nWidth; x++)
 						{
-							int idx = m_pCurrentMap->GetIndex(x, y);
-							cout << idx;
+							int idxB = m_pCurrentMap->GetIndex(x, y);
+							cout << idxB << " ";
+							int idxO = m_pCurrentMap->GetOverlayIndex(x, y);
+							cout << idxO << " ";
 							int sol = m_pCurrentMap->GetSolid(x, y);
-							cout << " " << sol << " ";
+							cout << sol << " ";
 						}
 						cout << endl;
+					}
+				}
+				if (GetKey(O).bPressed)
+				{
+					if (OverlayEditor)
+					{
+						OverlayEditor = false;
+						cout << "OverlayEditor Map editing disabled" << endl;
+					}
+					else
+					{
+						OverlayEditor = true;
+						cout << "OverlayEditor Map editing enabled" << endl;
 					}
 				}
 				// Nathan: Added impassable tile editing
@@ -583,12 +599,17 @@ protected:
 				int idx = m_pCurrentMap->GetIndex(x + fOffsetX, y + fOffsetY);
 				int sx = idx % 10;
 				int sy = idx / 10;
-				DrawPartialDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, m_pCurrentMap->pDecal, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 });
+				DrawPartialDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, m_pCurrentMap->pDecalB, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 });
+				int idxO = m_pCurrentMap->GetOverlayIndex(x + fOffsetX, y + fOffsetY);
+				int sxo = idxO % 10;
+				int syo = idxO / 10;
+				if (idxO != 1)
+					DrawPartialDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, m_pCurrentMap->pDecalO, { float(sxo) * nTileWidth, float(syo) * nTileHeight }, { 16, 16 });
 			}
 		}
 
 		// Combined Map editor and impassable editor into one with brushes
-		if (Draw_impassables || Editor)
+		if (Draw_impassables || Editor || OverlayEditor)
 		{
 			// Size of square changed (brush size)
 			int xstart = int((fOffsetX * nTileHeight + GetMouseX()) / 16) - BrushSize;
@@ -632,12 +653,34 @@ protected:
 
 				int sx = Selected_tile % 10;
 				int sy = Selected_tile / 10;
-				DrawPartialDecal({ float(GetMouseX()), float(GetMouseY()) }, m_pCurrentMap->pDecal, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 }, { 0.8f, 0.8f });
+				DrawPartialDecal({ float(GetMouseX()), float(GetMouseY()) }, m_pCurrentMap->pDecalB, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 }, { 0.8f, 0.8f });
 
 				if (GetMouse(0).bHeld) // If left mouse click + hold - > continues to place until not held
 					for (int x = xstart; x < xfinish; x++)
 						for (int y = ystart; y < yfinish; y++)
 							m_pCurrentMap->ModifyIndex(x, y, Selected_tile);
+			}
+
+			// Nathan: Added Overlay map editing
+			if (OverlayEditor)
+			{
+				if (GetKey(X).bHeld)
+					if (int(GetMouseWheel()) != 0)
+					{
+						Selected_tile -= int(GetMouseWheel()) / 120;
+						cout << Selected_tile << endl;
+					}
+				if (Selected_tile < 0) Selected_tile = 0; // Hardcoding 100 sprite limitation
+				if (Selected_tile > 99) Selected_tile = 99;
+
+				int sxo = Selected_tile % 10;
+				int syo = Selected_tile / 10;
+				DrawPartialDecal({ float(GetMouseX()), float(GetMouseY()) }, m_pCurrentMap->pDecalO, { float(sxo) * nTileWidth, float(syo) * nTileHeight }, { 16, 16 }, { 0.8f, 0.8f });
+
+				if (GetMouse(0).bHeld) // If left mouse click + hold - > continues to place until not held
+					for (int x = xstart; x < xfinish; x++)
+						for (int y = ystart; y < yfinish; y++)
+							m_pCurrentMap->ModifyOverlayIndex(x, y, Selected_tile);
 			}
 		}
 		// Nathan: added the mouse click teleport

@@ -36,13 +36,16 @@ public:
 	int nWidth;
 	int nHeight;
 	string sName;
-	olc::Decal* pDecal;
+	olc::Decal* pDecalB; // Base grid decal
+	olc::Decal* pDecalO; // Overlay grid decal
 
+	int ModifyOverlayIndex(int x, int y, int Selected_tile); // Nathan: Added to edit grid that is laid on top of the world
 	int ModifyIndex(int x, int y, int Selected_tile); // Nathan: Added to edit maps more easily
 	int ModifySolid(int x, int y, bool One); // Nathan: Added to edit the impassable tiles more easily
+	int GetOverlayIndex(int x, int y); // Nathan: Added an additional grid that is laid on top of the world
 	int GetIndex(int x, int y);
 	bool GetSolid(int x, int y);
-	bool Create(string fileData, olc::Decal* Decal, string name);
+	bool Create(string fileData, olc::Decal* BaseDecal, olc::Decal* OverlayDecal, string name);
 
 	virtual bool PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_random_engine& e1)
 	{

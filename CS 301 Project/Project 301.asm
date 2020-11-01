@@ -196,7 +196,48 @@ CharGridGet:
 		ret
 
 ; =======================================================================================================
+Global CharOverlayGridModify
 
+CharOverlayGridModify:
+	imul rdx, [Width] ; y value times the width
+	add rdx, rcx ; add the position in the row
+
+	mov rax, [Width]
+	imul rax, [Height]
+
+	cmp rdx, rax
+	jl .continue
+	mov rax, rdx
+	ret
+
+	.continue:
+		mov cl, BYTE [Char]
+
+		mov BYTE [CharOverlayGrid + rdx], cl ; move the preset char into the grid
+		mov rax, rcx
+		ret
+
+; ================================================
+Global CharOverlayGridGet
+
+CharOverlayGridGet:
+	imul rdx, [Width] ; y value times the width
+	add rdx, rcx ; add the position in the row
+	
+	mov rax, [Width]
+	imul rax, [Height]
+
+	cmp rdx, rax
+	jl .continue
+	mov rax, rdx
+	ret
+
+	.continue:
+		mov cl, BYTE [CharOverlayGrid + rdx]
+		mov rax, rcx
+		ret
+
+; =======================================================================================================
 
 
 
@@ -327,6 +368,9 @@ times 64   dq 0x0000000000000000
 
 CharGrid:	; A grid of 64x8 64bit longs with 8 chars in each
 times 64*8 dq 0x0000000000000000
+
+CharOverlayGrid:	; A grid of 64x8 64bit longs with 8 chars in each
+times 64*8 dq 0x0101010101010101
 
 Char: db 0
 Width:	; Giving width and height an aditional piece of data as I had some issues with functionality previously

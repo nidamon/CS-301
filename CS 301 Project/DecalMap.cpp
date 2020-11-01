@@ -29,6 +29,7 @@ void DecalMap::LoadDecals()
 
 	// Map
 	load("Plains", "./Sprites/Environment/PlainsTileSet.png");
+	load("Overlay", "./Sprites/Environment/OverlayTileSet.png");
 
 	// Creatures
 	load("Status", "./Sprites/Creatures/StatusBars.png");

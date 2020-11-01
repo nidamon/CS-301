@@ -19,6 +19,9 @@ using std::random_device;
 
 extern "C" int DimensionsSet(int, int); // Sets the width and height
 
+extern "C" int CharOverlayGridModify(int, int); // Modifies the char overlay grid
+extern "C" char CharOverlayGridGet(int, int); // Reads from the char overlay grid and returns tile value
+
 extern "C" char CharSet(char); // Sets a char value
 extern "C" char CharGridModify(int, int); // Modifies the char grid
 extern "C" char CharGridGet(int, int); // Reads from the char grid and returns tile value
@@ -29,7 +32,8 @@ extern "C" int BoolGridGet(int, int); // Reads from the bool grid and returns co
 
 cMap::cMap()
 {
-	pDecal = nullptr;
+	pDecalB = nullptr;
+	pDecalO = nullptr;
 	nWidth = 0;
 	nHeight = 0;
 	m_solids = nullptr;
@@ -42,6 +46,18 @@ cMap::~cMap()
 	delete[] m_indices;
 }
 
+int cMap::ModifyOverlayIndex(int x, int y, int Selected_tile) // Nathan: Added to edit grid that is laid on top of the world
+{
+	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
+	{
+		CharSet(Selected_tile); // Send the tile to assembly as an 8bit value
+		// Set specified x,y value to the char sent to above
+		CharOverlayGridModify(x, y); // (rcx, rdx)
+	}
+	else
+		return 0; // If there is a problem with setting the tiles
+}
+
 int cMap::ModifyIndex(int x, int y, int Selected_tile) // Nathan: Added to edit maps more easily
 {
 	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
@@ -52,8 +68,6 @@ int cMap::ModifyIndex(int x, int y, int Selected_tile) // Nathan: Added to edit 
 	}
 	else
 		return 0; // If there is a problem with setting the tiles
-
-
 }
 
 int cMap::ModifySolid(int x, int y, bool One) // Nathan: Added to edit the impassable tiles more easily
@@ -75,6 +89,17 @@ int cMap::ModifySolid(int x, int y, bool One) // Nathan: Added to edit the impas
 	}
 	else
 		return 0; // If there is a problem with setting the tiles
+}
+
+int cMap::GetOverlayIndex(int x, int y) // Nathan: Added an additional grid that is laid on top of the world
+{
+	if (x >= 0 && x < nWidth && y >= 0 && y < nHeight)
+	{
+		// Get the value at the specified coordinates
+		return (int)CharOverlayGridGet(x, y);
+	}
+	else
+		return 0; // If there is a problem with accessed information
 }
 
 int cMap::GetIndex(int x, int y)
@@ -99,19 +124,19 @@ bool cMap::GetSolid(int x, int y)
 		return 0; // If there is a problem with accessed information
 }
 
-bool cMap::Create(string fileData, olc::Decal* Decal, string name)
+bool cMap::Create(string fileData, olc::Decal* BaseDecal, olc::Decal* OverlayDecal, string name)
 {
 	sName = name;
-	pDecal = Decal;
+	pDecalB = BaseDecal;
+	pDecalO = OverlayDecal;
+	bool HasOverlay = false;
 	ifstream data(fileData, ios::in | ios::binary);
 	if (data.is_open())
 	{
-		data >> nWidth >> nHeight;
+		data >> nWidth >> nHeight >> HasOverlay;
 		if (nWidth * nHeight > 64 * 64)
 			std::cout << "Dimensions error: Assembly too small." << std::endl;
 		DimensionsSet(nWidth, nHeight); // Send dimensions to assembly
-		m_solids = new bool[nWidth * nHeight];
-		m_indices = new int[nWidth * nHeight];
 
 		int TempTileValue = 0;
 		bool TempSolidValue = 0;
@@ -126,6 +151,16 @@ bool cMap::Create(string fileData, olc::Decal* Decal, string name)
 				CharSet(TempTileValue); // Send the tile to assembly as an 8bit value
 				// Set specified x,y value to the char sent to above
 				CharGridModify(x, y); // (rcx, rdx)
+
+				if (HasOverlay) // Check if map has overlay or not
+				{
+					data >> TempTileValue;
+					if (TempTileValue < 0 || TempTileValue > 99)
+						TempTileValue = 0;
+					CharSet(TempTileValue); // Send the tile to assembly as an 8bit value
+					// Set specified x,y value to the char sent to above
+					CharOverlayGridModify(x, y); // (rcx, rdx)
+				}
 
 				data >> TempSolidValue;
 				if (TempSolidValue)// Set specified value to its opposite
@@ -143,74 +178,72 @@ bool cMap::Create(string fileData, olc::Decal* Decal, string name)
 cMap_Plains::cMap_Plains()
 {
 	//		  Map Text file			Tile sets              mapname    Area name
-	Create("./Maps/MapPlains1.txt", DecalMap::get().GetDecal("Plains"), "Plains");
+	Create("./Maps/MapContinent.txt", DecalMap::get().GetDecal("Plains"), DecalMap::get().GetDecal("Overlay"), "Plains");
 }
 
 bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_random_engine& e1)
 {
 	// Rabbit
-	for (int i = 0; i < 0; i++)
-	{
-		std::uniform_int_distribution<int> uniform_dist(0, 128); 
-		cDynamic* g1 = new cDynamic_Creature_Rabbit();
-		vecDyns.push_back(g1);
-		g1->_posx = uniform_dist(e1) % 15 + 5.0f;
-		g1->_posy = uniform_dist(e1) % 7 + 1.0f;
-		((cDynamic_Creature*)g1)->_age = 90.0f;
-		if (uniform_dist(e1) % 2 == 0)
-		{
-			((cDynamic_Creature*)g1)->_cGender = 'M';
-			std::cout << "Male Rabbit created" << std::endl;
-		}
-		else
-		{
-			((cDynamic_Creature*)g1)->_cGender = 'F';
-			std::cout << "Female Rabbit created" << std::endl;
-		}
-	}
-	// Fox
-	for (int i = 0; i < 0; i++)
-	{
-		std::uniform_int_distribution<int> uniform_dist(0, 128);
-		cDynamic* g1 = new cDynamic_Creature_Fox();
-		vecDyns.push_back(g1);
-		g1->_posx = uniform_dist(e1) % 15 + 5.0f;
-		g1->_posy = uniform_dist(e1) % 7 + 1.0f;
-		((cDynamic_Creature*)g1)->_age = 90.0f;
-		if (uniform_dist(e1) % 2 == 0)
-		{
-			((cDynamic_Creature*)g1)->_cGender = 'M';
-			std::cout << "Male Fox created" << std::endl;
-		}
-		else
-		{
-			((cDynamic_Creature*)g1)->_cGender = 'F';
-			std::cout << "Female Fox created" << std::endl;
-		}
-
-	}
-	// Bear
-	for (int i = 0; i < 0; i++)
-	{
-		std::uniform_int_distribution<int> uniform_dist(0, 128);
-		cDynamic* g1 = new cDynamic_Creature_Bear();
-		vecDyns.push_back(g1);
-		g1->_posx = uniform_dist(e1) % 15 + 5.0f;
-		g1->_posy = uniform_dist(e1) % 7 + 1.0f;
-		((cDynamic_Creature*)g1)->_age = 90.0f;
-		if (uniform_dist(e1) % 2 == 0)
-		{
-			((cDynamic_Creature*)g1)->_cGender = 'M';
-			std::cout << "Male Bear created" << std::endl;
-		}
-		else
-		{
-			((cDynamic_Creature*)g1)->_cGender = 'F';
-			std::cout << "Female Bear created" << std::endl;
-		}
-
-	}
-	
+	//for (int i = 0; i < 8; i++)
+	//{
+	//	std::uniform_int_distribution<int> uniform_dist(0, 128); 
+	//	cDynamic* g1 = new cDynamic_Creature_Rabbit();
+	//	vecDyns.push_back(g1);
+	//	g1->_posx = uniform_dist(e1) % 15 + 5.0f;
+	//	g1->_posy = uniform_dist(e1) % 7 + 1.0f;
+	//	((cDynamic_Creature*)g1)->_age = 90.0f;
+	//	if (uniform_dist(e1) % 2 == 0)
+	//	{
+	//		((cDynamic_Creature*)g1)->_cGender = 'M';
+	//		std::cout << "Male Rabbit created" << std::endl;
+	//	}
+	//	else
+	//	{
+	//		((cDynamic_Creature*)g1)->_cGender = 'F';
+	//		std::cout << "Female Rabbit created" << std::endl;
+	//	}
+	//}
+	//// Fox
+	//for (int i = 0; i < 8; i++)
+	//{
+	//	std::uniform_int_distribution<int> uniform_dist(0, 128);
+	//	cDynamic* g1 = new cDynamic_Creature_Fox();
+	//	vecDyns.push_back(g1);
+	//	g1->_posx = uniform_dist(e1) % 15 + 5.0f;
+	//	g1->_posy = uniform_dist(e1) % 7 + 1.0f;
+	//	((cDynamic_Creature*)g1)->_age = 90.0f;
+	//	if (uniform_dist(e1) % 2 == 0)
+	//	{
+	//		((cDynamic_Creature*)g1)->_cGender = 'M';
+	//		std::cout << "Male Fox created" << std::endl;
+	//	}
+	//	else
+	//	{
+	//		((cDynamic_Creature*)g1)->_cGender = 'F';
+	//		std::cout << "Female Fox created" << std::endl;
+	//	}
+	//}
+	//// Bear
+	//for (int i = 0; i < 8; i++)
+	//{
+	//	std::uniform_int_distribution<int> uniform_dist(0, 128);
+	//	cDynamic* g1 = new cDynamic_Creature_Bear();
+	//	vecDyns.push_back(g1);
+	//	g1->_posx = uniform_dist(e1) % 15 + 5.0f;
+	//	g1->_posy = uniform_dist(e1) % 7 + 1.0f;
+	//	((cDynamic_Creature*)g1)->_age = 90.0f;
+	//	if (uniform_dist(e1) % 2 == 0)
+	//	{
+	//		((cDynamic_Creature*)g1)->_cGender = 'M';
+	//		std::cout << "Male Bear created" << std::endl;
+	//	}
+	//	else
+	//	{
+	//		((cDynamic_Creature*)g1)->_cGender = 'F';
+	//		std::cout << "Female Bear created" << std::endl;
+	//	}
+	//}
+	//
 	std::cout << std::endl;
 
 	/*cDynamic_Creature* tree1 = new cDynamic_Creature("Tree", DecalMap::get().GetDecal("Tree1"));
