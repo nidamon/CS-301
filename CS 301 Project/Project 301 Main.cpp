@@ -471,7 +471,6 @@ protected:
 
 							// Finding Y component
 							float Yval = sin(atan(diffx / diffy));
-							if (Yval > -1.0f || Yval < 1.0f)
 							// Finding X component
 							float Xval = cos(atan(diffx / diffy));
 
