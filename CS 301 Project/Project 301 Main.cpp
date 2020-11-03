@@ -333,8 +333,6 @@ protected:
 					object->_bRedundant = true;
 					cout << "A " << object->_sName << " got outside the habitat!" << endl;
 				}
-
-
 			float fNewObjectPosX = object->_posx + object->_velx * fElapsedTime;
 			float fNewObjectPosY = object->_posy + object->_vely * fElapsedTime;
 
@@ -358,7 +356,6 @@ protected:
 					object->_collision_velx = 0;
 				}
 			}
-
 			if (object->_vely + object->_collision_vely < 0)
 			{
 				if (m_pCurrentMap->GetSolid(fNewObjectPosX + fBorder + 0.0f, fNewObjectPosY + fBorder) || m_pCurrentMap->GetSolid(fNewObjectPosX + (1.0f - fBorder), fNewObjectPosY + fBorder))
@@ -431,26 +428,32 @@ protected:
 										cDynamic* g1 = new cDynamic_Creature_Fox();
 										Que(g1, m_nvecDynamics_que, dyn, object);
 									}
-									/*if (((cDynamic_Creature*)dyn)->_sName == "Bear")
+									if (((cDynamic_Creature*)dyn)->_sName == "Bear")
 									{
 										cDynamic* g1 = new cDynamic_Creature_Bear();
 										Que(g1, m_nvecDynamics_que, dyn, object);
-									}*/
+									}
 								}
 			};
 
 			//Object V Object collisions
 			for (auto& dyn : m_nvecDynamics)
 			{
-				if (dyn != object)
+				if (dyn != object && !dyn->_bRedundant && !object->_bRedundant && ((cDynamic_Creature*)dyn)->_nHealth > 0)
 				{
-					//If the object is solid then the player must not overlap
+					//If the object is solid then the creatures must push against each other
 					if (dyn->_bSolidVsDyn && object->_bSolidVsDyn)
 					{
 						// Nathan: Changed the square bounding boxes for dynamic interaction into circular bounds
+						float diffx = (object->_posx - dyn->_posx);
+						float diffy = (object->_posy - dyn->_posy);
+						if (diffy < 0.0001f && diffy > -0.0001f)
+							diffy = 0.001f;
+						if (diffx < 0.0001f && diffx > -0.0001f)
+							diffx = 0.001f;
+
 						// Get the distance between the centers of the objects
-						float Distance = sqrt((object->_posx - dyn->_posx) * (object->_posx - dyn->_posx) +
-							(object->_posy - dyn->_posy) * (object->_posy - dyn->_posy));
+						float Distance = sqrt(diffx * diffx + diffy * diffy);
 						//cout << "We check distance = " << Distance << endl;
 
 						// Amount of overlap between cricular bounds
@@ -467,9 +470,10 @@ protected:
 							object->_number_collisions++;
 
 							// Finding Y component
-							float Yval = sin(atan((object->_posx - dyn->_posx) / (object->_posy - dyn->_posy)));
+							float Yval = sin(atan(diffx / diffy));
+							if (Yval > -1.0f || Yval < 1.0f)
 							// Finding X component
-							float Xval = cos(atan((object->_posx - dyn->_posx) / (object->_posy - dyn->_posy)));
+							float Xval = cos(atan(diffx / diffy));
 
 							// Set the velocity in the x and y directions
 							float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)dyn)->_Mass);
@@ -479,7 +483,7 @@ protected:
 								if (((cDynamic_Creature*)object)->_collision_vely < -YComponent)
 									((cDynamic_Creature*)object)->_collision_vely = -YComponent;
 							}
-							else
+							else if ((object->_posx - dyn->_posx) > 0.0f)
 							{
 								((cDynamic_Creature*)object)->_collision_vely += YComponent * fElapsedTime;
 								if (((cDynamic_Creature*)object)->_collision_vely > YComponent)
@@ -495,7 +499,7 @@ protected:
 									((cDynamic_Creature*)object)->_collision_velx = -XComponent;
 
 							}
-							else
+							else if ((object->_posx - dyn->_posx) > 0.0f)
 							{
 								((cDynamic_Creature*)object)->_collision_velx += XComponent * fElapsedTime;
 								if (((cDynamic_Creature*)object)->_collision_velx > XComponent)
@@ -556,6 +560,7 @@ protected:
 
 				}
 			}
+
 
 			object->Update(fElapsedTime, season, m_nvecDynamics[0]);
 		}
@@ -696,7 +701,7 @@ protected:
 		for (auto& object : m_nvecDynamics)
 			object->DrawSelf(this, fOffsetX, fOffsetY);
 
-		m_pPlayer->DrawSelf(this, fOffsetX, fOffsetY);
+		m_pPlayer->DrawSelf(this, fOffsetX, fOffsetY); // Draw the player on top
 
 		if (UpdateLocalMap(fElapsedTime))
 			cout << "A Dynamic Creature has been erased..." << endl; // <- Nathan: added this for console

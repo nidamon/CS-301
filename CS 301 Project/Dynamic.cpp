@@ -10,6 +10,13 @@ I have made some changes to this code to better fit my project and limitations
 #include "Dynamic.h"
 #include "DecalMap.h"
 
+void MovementCheck(float& x, float& y, float& oldx, float& oldy, string name); // checks for sudden teleporting
+float MoveToTarget(const int Target_posx, const int Target_posy, bool& bNoTarget,
+	const float posx, const float posy, float& velx, float& vely,
+	const float fViewRange, const float& fReach, const float& fSpeed); // Moves the creature towards its target
+void ShouldHunt(bool& bHunt, const float& fullness, bool& bNoTarget); // Determines whether or not the creature should hunt
+void Hunger(int& fullness, const int& HungerDegredation, int& Health); // Updates the fullness and how much health is lost for low fulness
+
 cDynamic::cDynamic(string n)
 {
 	_sName = n;
@@ -26,6 +33,8 @@ cDynamic::cDynamic(string n)
 	_collision_velx = 0.0f;
 	_collision_vely = 0.0f;
 	_number_collisions = 0;
+	_oldposx = 0.0f;
+	_oldposy = 0.0f;
 }
 
 cDynamic::~cDynamic()
@@ -226,10 +235,10 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 	if (_nHealth > 0) // If the rabbit is still alive
 	{
 
-		if (_age < 100.0f) // Nathan: Added for aging
+		if (_GrowthStage != 3 && _age < 100.0f) // Nathan: Added for aging
 		{
 			_age += (fElapsedTime / _fTimeToGrow);
-			if (_age >= 10.0f && _age < 20.0f)
+			if (_GrowthStage < 1 &&_age >= 10.0f && _age < 20.0f)
 			{
 				_Meatleft = 40;
 				_EatAmount = 4;
@@ -237,7 +246,7 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 				_GrowthStage = 1;
 			}
 
-			if (_age >= 20.0f && _age < 30.0f)
+			if (_GrowthStage < 2 && _age >= 20.0f && _age < 30.0f)
 			{
 				_Meatleft = 50;
 				_EatAmount = 6;
@@ -245,7 +254,7 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 				_GrowthStage = 2;
 				_bSolidVsDyn = true;
 			}
-			if (_age >= 30.0f)
+			if (_GrowthStage < 3 && _age >= 30.0f)
 			{
 				_Meatleft = 70;
 				_EatAmount = 8;
@@ -295,6 +304,9 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 			default:
 				break;
 			}
+
+			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
+
 			m_fstateTick += 1.5f;
 		}
 	}
@@ -344,10 +356,10 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 {
 	if (_nHealth > 0) // If the Fox is still alive
 	{
-		if (_age < 100.0f) // Nathan: Added for aging
+		if (_GrowthStage != 3 && _age < 100.0f) // Nathan: Added for aging
 		{
 			_age += (fElapsedTime / _fTimeToGrow);
-			if (_age >= 10.0f && _age < 20.0f)
+			if (_GrowthStage < 1 && _age >= 10.0f && _age < 20.0f)
 			{
 				_AttackDmg = 3;
 				_Meatleft = 30;
@@ -355,7 +367,7 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 				_Mass = 3.0f;
 				_GrowthStage = 1;
 			}
-			if (_age >= 20.0f && _age < 30.0f)
+			if (_GrowthStage < 2 && _age >= 20.0f && _age < 30.0f)
 			{
 				_AttackDmg = 5;
 				_Meatleft = 60;
@@ -363,7 +375,7 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 				_Mass = 4.0f;
 				_GrowthStage = 2;
 			}
-			if (_age >= 30.0f)
+			if (_GrowthStage < 3 && _age >= 30.0f)
 			{
 				_AttackDmg = 8;
 				_Meatleft = 100;
@@ -374,6 +386,9 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 
 		}
 
+
+
+
 		if (_GrowthStage == 3 && season == 1 && !_bHasMingled)
 			_bMingle = true;
 		if (_GrowthStage == 3 && season != 1)
@@ -381,40 +396,13 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 			_bHasMingled = false;
 		}
 
-		if (_fullness < 40)
-			_bHunt = true;
-		if (_fullness > 70)
-		{
-			_bHunt = false;
-			if (_fullness == 100)
-				_bNoTarget = true;
-		}
+		ShouldHunt(_bHunt, _fullness, _bNoTarget);
 
 		if (!_bNoTarget) //Path finding here
 		{
-			// Check if _Target is nearby
-			float fTargetX = _Target->_posx - _posx;
-			float fTargetY = _Target->_posy - _posy;
-			float fDistance = sqrtf(fTargetX * fTargetX + fTargetY * fTargetY);
-			if (fDistance < _fViewRange)
-			{
-				_velx = (fTargetX / fDistance) * _fSpeed;
-				if (_velx > 5.0f)
-					_velx = 5.0f;
-				if (_velx < -5.0f)
-					_velx = -5.0f;
-				_vely = (fTargetY / fDistance) * _fSpeed;
-				if (_vely > 5.0f)
-					_vely = 5.0f;
-				if (_vely < -5.0f)
-					_vely = -5.0f;
-			}
-			else
-			{
-				_bNoTarget = true;
-				_velx = 0;
-				_vely = 0;
-			}
+
+			float fDistance = MoveToTarget(_Target->_posx, _Target->_posy, _bNoTarget, _posx, _posy, _velx, _vely, _fViewRange, _fReach, _fSpeed);
+
 			if (!_Target->_bRedundant)
 			{
 				if (fDistance < _fReach)
@@ -448,6 +436,7 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 			if (_Target->_bRedundant)
 				_bNoTarget = true;
 		}
+
 		m_fstateTick -= fElapsedTime;
 		if (m_fstateTick <= 0.0f)
 		{
@@ -480,12 +469,8 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 				break;
 			}
 
-
-			_fullness -= 6;
-			if (_fullness < 15)
-				_nHealth -= 3;
-			if (_fullness < 0)
-				_fullness = 0;
+			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
+			Hunger(_fullness, _HungerDegredation, _nHealth);
 
 			m_fstateTick += ((float)(rand() % 20) * 0.1f + 1.5f);
 		}
@@ -540,10 +525,10 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 {
 	if (_nHealth > 0) // If the Bear is still alive
 	{
-		if (_age < 100.0f) // Nathan: Added for aging
+		if (_GrowthStage != 3 && _age < 100.0f) // Nathan: Added for aging
 		{
 			_age += (fElapsedTime / _fTimeToGrow);
-			if (_age >= 10.0f && _age < 20.0f)
+			if (_GrowthStage < 1 && _age >= 10.0f && _age < 20.0f)
 			{
 				_AttackDmg = 5;
 				_Meatleft = 50;
@@ -552,7 +537,7 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 				_Mass = 5.0f;
 				_GrowthStage = 1;
 			}
-			if (_age >= 20.0f && _age < 30.0f)
+			if (_GrowthStage < 2 && _age >= 20.0f && _age < 30.0f)
 			{
 				_AttackDmg = 10;
 				_Meatleft = 150;
@@ -561,7 +546,7 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 				_Mass = 8.0f;
 				_GrowthStage = 2;
 			}
-			if (_age >= 30.0f)
+			if (_GrowthStage < 3 && _age >= 30.0f)
 			{
 				_AttackDmg = 15;
 				_Meatleft = 200;
@@ -579,41 +564,12 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 			_bHasMingled = false;
 		}
 
-		if (_fullness < 40)
-			_bHunt = true;
-		if (_fullness > 60)
-		{
-			_bHunt = false;
-			if (_fullness == 100)
-				_bNoTarget = true;
-		}
+		ShouldHunt(_bHunt, _fullness, _bNoTarget);
 
 		if (!_bNoTarget) //Path finding here
 		{
-			// Check if _Target is nearby
-			float fTargetX = _Target->_posx - _posx;
-			float fTargetY = _Target->_posy - _posy;
-			float fDistance = sqrtf(fTargetX * fTargetX + fTargetY * fTargetY);
-			if (fDistance < _fViewRange)
-			{
-				_velx = (fTargetX / fDistance) * _fSpeed;
-				if (_velx > 5.0f)
-					_velx = 5.0f;
-				if (_velx < -5.0f)
-					_velx = -5.0f;
-				_vely = (fTargetY / fDistance) * _fSpeed;
-				if (_vely > 5.0f)
-					_vely = 5.0f;
-				if (_vely < -5.0f)
-					_vely = -5.0f;
+			float fDistance = MoveToTarget(_Target->_posx, _Target->_posy, _bNoTarget, _posx, _posy, _velx, _vely, _fViewRange, _fReach, _fSpeed);
 
-			}
-			else
-			{
-				_bNoTarget = true;
-				_velx = 0;
-				_vely = 0;
-			}
 			if (!_Target->_bRedundant)
 			{
 				if (fDistance < _fReach)
@@ -681,12 +637,8 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 				break;
 			}
 
-
-			_fullness -= _HungerDegredation;
-			if (_fullness < 15)
-				_nHealth -= 3;
-			if (_fullness < 0)
-				_fullness = 0;
+			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
+			Hunger(_fullness, _HungerDegredation, _nHealth);
 
 			m_fstateTick += ((float)(rand() % 20) * 0.1f + 1.5f);
 		}
@@ -702,4 +654,99 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 		}
 
 	}
+}
+
+
+
+
+
+
+
+
+//##################################################################################################
+
+
+
+//##################################################################################################
+
+
+
+void MovementCheck(float& x, float& y, float& oldx, float& oldy, string name)
+{
+	if ((int)oldx != 0 && (int)oldy != 0)
+		if (oldx - 5.0f < x && oldx + 5.0f > x && oldy - 5.0f < y && oldy + 5.0f > y)
+		{
+			oldx = x;
+			oldy = y;
+		}
+		else
+		{
+			std::cout << std::endl;
+			std::cout << name << " jumped from:" << std::endl;
+			std::cout << "X: " << oldx << " to " << x << std::endl;
+			x = oldx;
+			std::cout << "Y: " << oldy << " to " << y << std::endl;
+			y = oldy;
+		}
+}
+
+float MoveToTarget(const int Target_posx, const int Target_posy, bool& bNoTarget,
+	const float posx, const float posy, float& velx, float& vely,
+	const float fViewRange, const float& fReach, const float& fSpeed)
+{
+	// Check if _Target is nearby
+	float fTargetX = Target_posx - posx;
+	float fTargetY = Target_posy - posy;
+	float fDistance = sqrtf(fTargetX * fTargetX + fTargetY * fTargetY);
+	if (fDistance < fViewRange)
+	{
+		if (fDistance > fReach)
+		{
+			velx = (fTargetX / fDistance) * fSpeed;
+			if (velx > 5.0f)
+				velx = 5.0f;
+			if (velx < -5.0f)
+				velx = -5.0f;
+			vely = (fTargetY / fDistance) * fSpeed;
+			if (vely > 5.0f)
+				vely = 5.0f;
+			if (vely < -5.0f)
+				vely = -5.0f;
+		}
+		else
+		{
+			velx = 0;
+			vely = 0;
+		}
+	}
+	else
+	{
+		bNoTarget = true;
+		velx = 0;
+		vely = 0;
+	}
+	return fDistance;
+}
+
+void ShouldHunt(bool &bHunt, const float& fullness, bool& bNoTarget)
+{
+	if (!bHunt)
+		if (fullness < 40)
+			bHunt = true;
+	if (bHunt)
+		if (fullness > 70)
+		{
+			bHunt = false;
+			if (fullness == 100)
+				bNoTarget = true;
+		}
+}
+
+void Hunger(int& fullness, const int & HungerDegredation, int& Health)
+{
+	fullness -= HungerDegredation;
+	if (fullness < 15)
+		Health -= 3;
+	if (fullness < 0)
+		fullness = 0;
 }

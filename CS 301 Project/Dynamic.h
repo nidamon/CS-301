@@ -35,6 +35,8 @@ public:
 	float _DynamicRadius; // Gives the radius for dynamic collision repulsion
 	float _collision_velx, _collision_vely;  // Collision Velocity x,y
 	int _number_collisions; // Keep track of how many objects colliding with
+	float _oldposx; // old position
+	float _oldposy;
 
 public:
 	virtual void DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety) {}

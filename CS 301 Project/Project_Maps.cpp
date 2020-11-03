@@ -183,67 +183,67 @@ cMap_Plains::cMap_Plains()
 
 bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_random_engine& e1)
 {
-	// Rabbit
-	//for (int i = 0; i < 8; i++)
-	//{
-	//	std::uniform_int_distribution<int> uniform_dist(0, 128); 
-	//	cDynamic* g1 = new cDynamic_Creature_Rabbit();
-	//	vecDyns.push_back(g1);
-	//	g1->_posx = uniform_dist(e1) % 15 + 5.0f;
-	//	g1->_posy = uniform_dist(e1) % 7 + 1.0f;
-	//	((cDynamic_Creature*)g1)->_age = 90.0f;
-	//	if (uniform_dist(e1) % 2 == 0)
-	//	{
-	//		((cDynamic_Creature*)g1)->_cGender = 'M';
-	//		std::cout << "Male Rabbit created" << std::endl;
-	//	}
-	//	else
-	//	{
-	//		((cDynamic_Creature*)g1)->_cGender = 'F';
-	//		std::cout << "Female Rabbit created" << std::endl;
-	//	}
-	//}
-	//// Fox
-	//for (int i = 0; i < 8; i++)
-	//{
-	//	std::uniform_int_distribution<int> uniform_dist(0, 128);
-	//	cDynamic* g1 = new cDynamic_Creature_Fox();
-	//	vecDyns.push_back(g1);
-	//	g1->_posx = uniform_dist(e1) % 15 + 5.0f;
-	//	g1->_posy = uniform_dist(e1) % 7 + 1.0f;
-	//	((cDynamic_Creature*)g1)->_age = 90.0f;
-	//	if (uniform_dist(e1) % 2 == 0)
-	//	{
-	//		((cDynamic_Creature*)g1)->_cGender = 'M';
-	//		std::cout << "Male Fox created" << std::endl;
-	//	}
-	//	else
-	//	{
-	//		((cDynamic_Creature*)g1)->_cGender = 'F';
-	//		std::cout << "Female Fox created" << std::endl;
-	//	}
-	//}
-	//// Bear
-	//for (int i = 0; i < 8; i++)
-	//{
-	//	std::uniform_int_distribution<int> uniform_dist(0, 128);
-	//	cDynamic* g1 = new cDynamic_Creature_Bear();
-	//	vecDyns.push_back(g1);
-	//	g1->_posx = uniform_dist(e1) % 15 + 5.0f;
-	//	g1->_posy = uniform_dist(e1) % 7 + 1.0f;
-	//	((cDynamic_Creature*)g1)->_age = 90.0f;
-	//	if (uniform_dist(e1) % 2 == 0)
-	//	{
-	//		((cDynamic_Creature*)g1)->_cGender = 'M';
-	//		std::cout << "Male Bear created" << std::endl;
-	//	}
-	//	else
-	//	{
-	//		((cDynamic_Creature*)g1)->_cGender = 'F';
-	//		std::cout << "Female Bear created" << std::endl;
-	//	}
-	//}
-	//
+	//Rabbit
+	for (int i = 0; i < 8; i++)
+	{
+		std::uniform_int_distribution<int> uniform_dist(0, 128); 
+		cDynamic* g1 = new cDynamic_Creature_Rabbit();
+		vecDyns.push_back(g1);
+		g1->_posx = uniform_dist(e1) % 15 + 10.0f;
+		g1->_posy = uniform_dist(e1) % 7 + 10.0f;
+		((cDynamic_Creature*)g1)->_age = 90.0f;
+		if (uniform_dist(e1) % 2 == 0)
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'M';
+			std::cout << "Male Rabbit initialized" << std::endl;
+		}
+		else
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'F';
+			std::cout << "Female Rabbit initialized" << std::endl;
+		}
+	}
+	// Fox
+	for (int i = 0; i < 8; i++)
+	{
+		std::uniform_int_distribution<int> uniform_dist(0, 128);
+		cDynamic* g1 = new cDynamic_Creature_Fox();
+		vecDyns.push_back(g1);
+		g1->_posx = uniform_dist(e1) % 15 + 10.0f;
+		g1->_posy = uniform_dist(e1) % 7 + 10.0f;
+		((cDynamic_Creature*)g1)->_age = 90.0f;
+		if (uniform_dist(e1) % 2 == 0)
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'M';
+			std::cout << "Male Fox initialized" << std::endl;
+		}
+		else
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'F';
+			std::cout << "Female Fox initialized" << std::endl;
+		}
+	}
+	// Bear
+	for (int i = 0; i < 8; i++)
+	{
+		std::uniform_int_distribution<int> uniform_dist(0, 128);
+		cDynamic* g1 = new cDynamic_Creature_Bear();
+		vecDyns.push_back(g1);
+		g1->_posx = uniform_dist(e1) % 15 + 15.0f;
+		g1->_posy = uniform_dist(e1) % 7 + 19.0f;
+		((cDynamic_Creature*)g1)->_age = 90.0f;
+		if (uniform_dist(e1) % 2 == 0)
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'M';
+			std::cout << "Male Bear initialized" << std::endl;
+		}
+		else
+		{
+			((cDynamic_Creature*)g1)->_cGender = 'F';
+			std::cout << "Female Bear initialized" << std::endl;
+		}
+	}
+	
 	std::cout << std::endl;
 
 	/*cDynamic_Creature* tree1 = new cDynamic_Creature("Tree", DecalMap::get().GetDecal("Tree1"));
