@@ -25,6 +25,9 @@ using std::endl;
 using std::string;
 #include <algorithm>
 #include <math.h>
+#include <iomanip>
+using std::setw;
+using std::right;
 
 //Assembly Functions Ahead!!!
 
@@ -46,6 +49,10 @@ extern "C" int wants_to_eat(void); // Takes float_variable1(fullness) and float_
 // Implemented
 extern "C" int SeasonOfYear(float); // Takes a float of time and returns 1-4 based on season
 extern "C" int YearlengthSet(float);// Takes a float and sets the year's length to that value
+
+extern "C" int IntegralGridResetFrom(int x, int y); // Create/update the integral grid from the x and y coordinates to the bottom right corner
+extern "C" int IntegralGridGet(int x, int y); // Get value at the given coordinates
+extern "C" int IntegralGridResetFrom(int x, int y); // Create/update the integral grid from the x and y coordinates to the bottom right corner
 
 // Creates a small habitat with the ambition to be more
 class Topdown_Game : public olc::PixelGameEngine
@@ -74,7 +81,6 @@ private:
 	bool Draw_impassables = false;
 	int Selected_tile = 0;
 	int editorY_adjustment = 0;
-	float Player_speed = 4.0f;
 	bool Cheats_allowed = true;
 	float Time = 0;
 	int season = 4; // 1 = spring, 2 = summer, 3 = fall, 4 = winter
@@ -82,6 +88,14 @@ private:
 	vector<cDynamic*> m_nvecDynamics_que; // Ques up the new creatures to be placed in the world
 	int Dynamic_Cap = 80; // Set a limit to the number of creatures
 	int BrushSize = 0;
+
+	int Navigate = 0;
+	bool bNavigate = false;
+	float NavTimeElapse = 0.0f;
+	float NavXMouse = 0;
+	float NavYMouse = 0;
+	int NavX = 5;
+	int NavY = 5;
 
 	// Remove
 	float Repulsion = 2.2f; // How fast the creatures will repel each other when overlapping
@@ -98,9 +112,10 @@ protected:
 
 		m_pCurrentMap = new cMap_Plains();
 
-		m_pPlayer = new cDynamic_Creature("player", DecalMap::get().GetDecal("TestSpriteSheet"));
+		m_pPlayer = new cDynamic_Creature("player", DecalMap::get().GetDecal("TV"));
 		m_pPlayer->_posx = 5.0f;
 		m_pPlayer->_posy = 5.0f;
+		m_pPlayer->_fSpeed = 4.0f;
 		m_pPlayer->_GrowthStage = 3;
 		m_pPlayer->_Mass = 8.0f; // Pay no attention the lightweight Player!
 		m_pPlayer->_DynamicRadius = 0.6f;
@@ -111,6 +126,7 @@ protected:
 		m_pCurrentMap->PopulateDynamics(m_nvecDynamics, e1);
 
 		YearlengthSet(YearLength);
+		IntegralGridResetFrom(0, 0);
 
 		return true;
 	}
@@ -130,10 +146,12 @@ protected:
 			{
 				// Nathan: Added mouse clicking
 				if (GetKey(T).bHeld) // Nathan: T for Teleport
+				{
 					if (GetMouse(0).bReleased) // If left mouse click
 					{
 						Teleport = true;
 					}
+				}
 				// Nathan: Added map editing
 				if (GetKey(M).bPressed)
 				{
@@ -178,16 +196,29 @@ protected:
 				// Nathan: Added impassable tile editing
 				if (GetKey(I).bPressed)
 				{
-						if (Draw_impassables)
+					if (Draw_impassables)
+					{
+						Draw_impassables = false;
+						cout << "Impassable tile editing disabled" << endl;
+					}
+					else
+					{
+						Draw_impassables = true;
+						cout << "Impassable tile editing enabled" << endl;
+					}
+					for (int y = 0; y < 64; y++)
+					{
+						for (int x = 0; x < 64; x++)
 						{
-							Draw_impassables = false;
-							cout << "Impassable tile editing disabled" << endl;
+							// Set specified value to its opposite
+							cout << setw(3) << IntegralGridGet(x, y) << " "; // (rcx, rdx)
+							if (x % 8 == 7)
+								cout << "  ";
 						}
-						else
-						{
-							Draw_impassables = true;
-							cout << "Impassable tile editing enabled" << endl;
-						}
+						cout << endl;
+						if (y % 8 == 7)
+							cout << endl;
+					}
 				}
 				// Nathan: Added brush sizes
 				if (GetKey(B).bHeld) // Second mouse button
@@ -205,11 +236,11 @@ protected:
 				{
 					if (int(GetMouseWheel()) != 0)
 					{
-						Player_speed += float(GetMouseWheel()) / 30;
-						cout << "Player_speed = " << Player_speed << endl;
+						m_pPlayer->_fSpeed += float(GetMouseWheel()) / 30;
+						cout << "Player_speed = " << m_pPlayer->_fSpeed << endl;
 					}
-					if (Player_speed < 1) Player_speed = 1.0f;
-					if (Player_speed > 20.0f) Player_speed = 20.f;
+					if (m_pPlayer->_fSpeed < 1) m_pPlayer->_fSpeed = 1.0f;
+					if (m_pPlayer->_fSpeed > 20.0f) m_pPlayer->_fSpeed = 20.f;
 				}
 				// Nathan: Added population limiter
 				if (GetKey(P).bHeld) // Second mouse button
@@ -247,6 +278,16 @@ protected:
 					}
 				}
 			}
+			// Nathan: Added Path finding navigation via mouse clicking
+			if (GetKey(N).bHeld) // Nathan: N for Navigate
+			{
+				if (GetMouse(1).bReleased) // If right mouse click
+				{
+					NavXMouse = GetMouseX() / 16;
+					NavYMouse = GetMouseY() / 16;
+					bNavigate = true;
+				}
+			}
 			//if (GetKey(Z).bHeld)
 			//{
 			//	if (int(GetMouseWheel()) != 0)
@@ -259,19 +300,19 @@ protected:
 			//}
 			if (GetKey(UP).bHeld || GetKey(W).bHeld) // Nathan: Added the wasd keys
 			{
-				m_pPlayer->_vely = -Player_speed;
+				m_pPlayer->_vely = -m_pPlayer->_fSpeed;
 			}
 			if (GetKey(DOWN).bHeld || GetKey(S).bHeld)
 			{
-				m_pPlayer->_vely = Player_speed;
+				m_pPlayer->_vely = m_pPlayer->_fSpeed;
 			}
 			if (GetKey(LEFT).bHeld || GetKey(A).bHeld)
 			{
-				m_pPlayer->_velx = -Player_speed;
+				m_pPlayer->_velx = -m_pPlayer->_fSpeed;
 			}
 			if (GetKey(RIGHT).bHeld || GetKey(D).bHeld)
 			{
-				m_pPlayer->_velx = Player_speed;
+				m_pPlayer->_velx = m_pPlayer->_fSpeed;
 			}
 			if (GetKey(SPACE).bReleased) // Interaction requested
 			{
@@ -317,6 +358,47 @@ protected:
 			}
 		}
 
+		// Nathan: added path finding for the player     
+		if (Navigate != 0) //This needs to go before the code that runs over the updating
+		{
+			if (GetMouse(0).bReleased ||
+				GetKey(UP).bHeld || GetKey(W).bHeld ||
+				GetKey(DOWN).bHeld || GetKey(S).bHeld ||
+				GetKey(LEFT).bHeld || GetKey(A).bHeld ||
+				GetKey(RIGHT).bHeld || GetKey(D).bHeld)
+			{
+				Navigate = 0; // This prevents path finding breaking when trying to do other things
+				m_pPlayer->_vPath.clear();
+				m_pPlayer->_bHave_Path = false;
+			}
+			if (Navigate == 2)
+			{
+				m_pPlayer->_vPath.clear();
+				m_pPlayer->_bHave_Path = false;
+				Navigate = 1;
+			}
+			if (m_pPlayer->MoveTo(NavX, NavY) <= 0.065f)
+				Navigate = 0;
+			//cout << "VelX: " << m_nvecDynamics[0]->_velx << endl;
+			//cout << "VelY: " << m_nvecDynamics[0]->_vely << endl;
+
+
+
+			/*if (NavTimeElapse <= 0.0f)
+			{
+
+				cout << NavTimeElapse << endl;
+				NavTimeElapse = 0.5f;
+
+
+			}
+			else
+				NavTimeElapse -= fElapsedTime;*/
+
+		}
+
+
+
 		if (m_nvecDynamics.size() > Dynamic_Cap) // Nathan: added entity cap
 		{
 			for (int i = Dynamic_Cap; i < m_nvecDynamics.size(); i++)
@@ -333,6 +415,7 @@ protected:
 					object->_bRedundant = true;
 					cout << "A " << object->_sName << " got outside the habitat!" << endl;
 				}
+
 			float fNewObjectPosX = object->_posx + object->_velx * fElapsedTime;
 			float fNewObjectPosY = object->_posy + object->_vely * fElapsedTime;
 
@@ -572,6 +655,8 @@ protected:
 				m_nvecDynamics_que.pop_back();
 			}
 
+
+
 		fCameraPosX = m_pPlayer->_posx;
 		fCameraPosY = m_pPlayer->_posy;
 
@@ -629,6 +714,16 @@ protected:
 						if (m_pCurrentMap->GetSolid(x + fOffsetX, y + fOffsetY))
 							DrawDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, DecalMap::get().GetDecal("Impassable"));
 
+				if (GetMouse(0).bReleased || GetMouse(1).bReleased)
+				{
+					if (xstart < 1)
+						xstart = 1;
+					if (ystart < 1)
+						ystart = 1;
+					IntegralGridResetFrom(xstart, ystart);
+					cout << "IntegralGridReset" << endl;
+				}
+
 				if (GetMouse(0).bHeld || GetMouse(1).bHeld) // If left or right mouse click + hold - > continues to place until not held
 				{
 					bool selected = false;
@@ -637,9 +732,11 @@ protected:
 					else
 						selected = false; // Set impassable
 
+
 					for (int x = xstart; x < xfinish; x++)
 						for (int y = ystart; y < yfinish; y++)
 							m_pCurrentMap->ModifySolid(x, y, selected);
+
 				}
 			}
 
@@ -695,6 +792,17 @@ protected:
 			Teleport = false;
 		}
 
+		if (bNavigate)
+		{
+			NavX = int(fOffsetX + NavXMouse); // Set destination x
+			NavY = int(fOffsetY + NavYMouse); // Set destination y
+			if (Navigate == 0)
+				Navigate = 1; // Begin path finding
+			else if (Navigate == 1)
+				Navigate = 2; // Stop old path and start new path finding
+			cout << "Navigate: " << Navigate << endl;
+			bNavigate = false;
+		}
 
 		// Draw Object
 		for (auto& object : m_nvecDynamics)

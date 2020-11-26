@@ -143,6 +143,7 @@
   <ItemGroup>
     <ClCompile Include="DecalMap.cpp" />
     <ClCompile Include="Dynamic.cpp" />
+    <ClCompile Include="PathFinding.cpp" />
     <ClCompile Include="Project 301 Main.cpp" />
     <ClCompile Include="Project_Maps.cpp" />
   </ItemGroup>
@@ -159,6 +160,7 @@
     <ClInclude Include="DecalMap.h" />
     <ClInclude Include="Dynamic.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
+    <ClInclude Include="PathFinding.h" />
     <ClInclude Include="Project_Maps.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

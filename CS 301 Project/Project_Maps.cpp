@@ -184,13 +184,20 @@ cMap_Plains::cMap_Plains()
 bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_random_engine& e1)
 {
 	//Rabbit
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < 20; i++)
 	{
 		std::uniform_int_distribution<int> uniform_dist(0, 128); 
 		cDynamic* g1 = new cDynamic_Creature_Rabbit();
 		vecDyns.push_back(g1);
-		g1->_posx = uniform_dist(e1) % 15 + 10.0f;
-		g1->_posy = uniform_dist(e1) % 7 + 10.0f;
+
+		g1->_posx = uniform_dist(e1) % 64;
+		g1->_posy = uniform_dist(e1) % 64;
+		while (BoolGridGet(g1->_posx, g1->_posy) != 0) // Get a position that is not solid
+		{
+			g1->_posx = uniform_dist(e1) % 64;
+			g1->_posy = uniform_dist(e1) % 64;
+		}
+
 		((cDynamic_Creature*)g1)->_age = 90.0f;
 		if (uniform_dist(e1) % 2 == 0)
 		{
@@ -204,13 +211,20 @@ bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_rand
 		}
 	}
 	// Fox
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		std::uniform_int_distribution<int> uniform_dist(0, 128);
 		cDynamic* g1 = new cDynamic_Creature_Fox();
 		vecDyns.push_back(g1);
-		g1->_posx = uniform_dist(e1) % 15 + 10.0f;
-		g1->_posy = uniform_dist(e1) % 7 + 10.0f;
+
+		g1->_posx = uniform_dist(e1) % 64;
+		g1->_posy = uniform_dist(e1) % 64;
+		while (BoolGridGet(g1->_posx, g1->_posy) != 0) // Get a position that is not solid
+		{
+			g1->_posx = uniform_dist(e1) % 64;
+			g1->_posy = uniform_dist(e1) % 64;
+		}
+
 		((cDynamic_Creature*)g1)->_age = 90.0f;
 		if (uniform_dist(e1) % 2 == 0)
 		{
@@ -224,13 +238,20 @@ bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_rand
 		}
 	}
 	// Bear
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < 5; i++)
 	{
 		std::uniform_int_distribution<int> uniform_dist(0, 128);
 		cDynamic* g1 = new cDynamic_Creature_Bear();
 		vecDyns.push_back(g1);
-		g1->_posx = uniform_dist(e1) % 15 + 15.0f;
-		g1->_posy = uniform_dist(e1) % 7 + 19.0f;
+
+		g1->_posx = uniform_dist(e1) % 64;
+		g1->_posy = uniform_dist(e1) % 64;
+		while (BoolGridGet(g1->_posx, g1->_posy) != 0) // Get a position that is not solid
+		{
+			g1->_posx = uniform_dist(e1) % 64;
+			g1->_posy = uniform_dist(e1) % 64;
+		}
+
 		((cDynamic_Creature*)g1)->_age = 90.0f;
 		if (uniform_dist(e1) % 2 == 0)
 		{
@@ -245,31 +266,16 @@ bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_rand
 	}
 	
 	std::cout << std::endl;
-
-	/*cDynamic_Creature* tree1 = new cDynamic_Creature("Tree", DecalMap::get().GetDecal("Tree1"));
-	tree1->_posx = 15.0f;
-	tree1->_posy = 6.0f;
-	vecDyns.push_back(tree1);*/
-
 	return true;
 }
 
 bool cMap_Plains::OnInteraction(vector<cDynamic*>& vecDynobject, cDynamic* target, NATURE nature)
 {
-	if (target->_sName == "Tree")
-	{
-		if (target->_bSolidVsDyn == true)
-			target->_bSolidVsDyn = false;
-		else if (target->_bSolidVsDyn == false)
-			target->_bSolidVsDyn = true;
-	}
-
 	if (target->_sName == "Rabbit" || target->_sName == "Fox" || target->_sName == "Bear")
 	{
 		cDynamic_Creature* dyn = (cDynamic_Creature*)target;
 		dyn->_nHealth = max(dyn->_nHealth - 15, 0);
 	}
-
 
 	return false;
 }

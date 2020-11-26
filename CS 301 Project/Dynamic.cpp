@@ -9,13 +9,24 @@ I have made some changes to this code to better fit my project and limitations
 
 #include "Dynamic.h"
 #include "DecalMap.h"
+#include "PathFinding.h"
 
 void MovementCheck(float& x, float& y, float& oldx, float& oldy, string name); // checks for sudden teleporting
+
 float MoveToTarget(const int Target_posx, const int Target_posy, bool& bNoTarget,
 	const float posx, const float posy, float& velx, float& vely,
-	const float fViewRange, const float& fReach, const float& fSpeed); // Moves the creature towards its target
+	const float fViewRange, const float& fReach, const float& fSpeed,
+	vector<int>& vPath, bool& bHave_Path); // Moves the creature towards its target
+
 void ShouldHunt(bool& bHunt, const float& fullness, bool& bNoTarget); // Determines whether or not the creature should hunt
+
 void Hunger(int& fullness, const int& HungerDegredation, int& Health); // Updates the fullness and how much health is lost for low fulness
+
+void MovementCorrection(const float movementspeed, float& velx, float& vely, 
+	const float startposx, const float startposy, 
+	const float finishposx, const float finishposy); // Returns a fixed movement speed for any direction
+
+extern "C" char CharOverlayGridGet(int, int); // Reads from the char overlay grid and returns tile value
 
 cDynamic::cDynamic(string n)
 {
@@ -80,7 +91,17 @@ cDynamic_Creature::cDynamic_Creature(string name, olc::Decal* sprite) : cDynamic
 	_fEatCooldown = 0.0f;
 	_FoodChain = 0;
 	_Target = nullptr;
+
 	_fSpeed = 1.0f;
+	_bHave_Path = false;
+	_vPath;
+	_posx1 = 5;
+	_posy1 = 5;
+	_posx2 = 5;
+	_posy2 = 5;
+	_fPathTimeCounter = 0.25f;
+	_fdestinationX = 5;
+	_fdestinationY = 5;
 
 	_HungerDegredation = 3;
 	_fRegenrationTimeForOneHP = 1.0f;
@@ -201,6 +222,102 @@ int cDynamic_Creature::GetFacingDirection()
 	return m_nFacingDirection;
 }
 
+// Nathan: Added Moveto for path finding
+float cDynamic_Creature::MoveTo(float Target_posx, float Target_posy)
+{
+	float distance = (Target_posx - _posx) * (Target_posx - _posx) + (Target_posy - _posy) * (Target_posy - _posy);
+	if (distance <= 0.125f)
+	{
+		_bHave_Path = false;
+		return distance;
+	}
+
+
+	//cout << _sName << ":" << endl;
+	if ((int)Target_posx < 1) // Correct the x and y for using the integral image
+		Target_posx = 1.0;
+	if ((int)Target_posy < 1)
+		Target_posy = 1.0;
+	if ((int)Target_posx > Width - 1) // Correct the x and y for attempt to path find out side of map
+		Target_posx = Width - 1;
+	if ((int)Target_posy > Width - 1) // The width is the same as the hieght
+		Target_posy = Width - 1;
+
+
+	//if (!_bHave_Path)
+	//{
+	//	cout << "Area Sum of (" << (int)_posx << "," << (int)_posy << ") to (" << (int)Target_posx << "," << (int)Target_posy << "): ";
+	//	cout << IntegralGridAreaSumGet((int)_posx, (int)_posy, (int)Target_posx, (int)Target_posy) << endl;
+	//}
+	//if (IntegralGridAreaSumGet((int)_posx, (int)_posy, (int)Target_posx, (int)Target_posy) == 0) // The path to target pos is clear
+	//{
+	//	_posx1 = Target_posx;
+	//	_posy1 = Target_posy;
+	//	_bHave_Path = true;
+	//	cout << "Clear Path" << endl;
+	//	cout << "intPath size: " << _vPath.size() << endl;
+	//}
+
+	if (!_bHave_Path)
+	{
+		PathFinding Path((int)_posx, (int)_posy, (int)Target_posx, (int)Target_posy);
+		_vPath = Path.Path_Get(); // Creates and returns a path to follow
+		if (_vPath[0] == -1)
+		{
+			cout << "Path destination unreachable" << endl;
+			_vPath.clear();
+			return 0.0f; // Stops the path finding
+		}
+		if (_vPath.size() > 1)
+			cout << "Path size: " << _vPath.size() << endl;
+		_bHave_Path = true;
+
+		_posx1 = (float)(_vPath.back() % Width);
+		_posy1 = (float)(_vPath.back() / Width);
+
+		if (_vPath.size() > 1)
+		{
+			_posx2 = (float)(_vPath[_vPath.size() - 2] % Width); // These get the x and y of the second to last item
+			_posy2 = (float)(_vPath[_vPath.size() - 2] / Width);
+		}
+
+	}
+	else
+	{
+		if (_vPath.size() > 1)
+		{
+			// If close enough to the next point set new pos1 and pos2
+			if ((_posx1 - _posx2) * (_posx1 - _posx2) + (_posy1 - _posy2) * (_posy1 - _posy2) + 0.01f >
+				(_posx2 - _posx)* (_posx2 - _posx) + (_posy2 - _posy) * (_posy2 - _posy))
+			{
+				cout << "Reseting local destination" << endl;
+				_vPath.pop_back(); // Remove the last item as we are at its location
+				_posx1 = _posx2;
+				_posy1 = _posy2;
+				if (_vPath.size() > 1) // Recheck for more than 1 item in path
+				{
+					_posx2 = (float)(_vPath[_vPath.size() - 2] % Width); // These get the x and y of the second to last item
+					_posy2 = (float)(_vPath[_vPath.size() - 2] / Width);
+				}
+				cout << "Moving from (" << _posx << "," << _posy << ") to (" << _posx1 << "," << _posy1 << ")" << endl;
+			}
+			MovementCorrection(_fSpeed, _velx, _vely, _posx, _posy, _posx1, _posy1);
+		}
+		else
+		{
+			MovementCorrection(_fSpeed, _velx, _vely, _posx, _posy, _posx1, _posy1);
+			if ((_posx1 - _posx) * (_posx1 - _posx) + (_posy1 - _posy) * (_posy1 - _posy) < 0.125f) // 0.25 being 0.5 units away from target pos
+			{
+				cout << "I'm there" << endl;
+				if (_vPath.size() == 1)
+					_vPath.pop_back(); // Remove the final item as we are at its location
+				_bHave_Path = false;
+			}
+		}
+	}
+	return distance;
+}
+
 //##################################################################################################
 
 
@@ -228,6 +345,9 @@ cDynamic_Creature_Rabbit::cDynamic_Creature_Rabbit() : cDynamic_Creature("Rabbit
 	_fEatCooldown = 0.0f;
 	_FoodChain = 1;
 	_fSpeed = 0.6f;
+
+	_BerryposX = 5;
+	_BerryposY = 5;
 }
 
 void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynamic* target)
@@ -273,41 +393,82 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 		}
 
 
-		m_fstateTick -= fElapsedTime;
+		m_fstateTick -= fElapsedTime; // This runs miscellaneous behaviours 
 		if (m_fstateTick <= 0.0f)
 		{
-			switch (rand() % 3) // Get movement on x-axis
+			Hunger(_fullness, _HungerDegredation, _nHealth);
+			if (_fullness < 60) // This gets the rabbit to search for berry bushes
 			{
-			case 0:
-				_velx = 0.0f;
-				break;
-			case 1:
-				_velx = _fSpeed;
-				break;
-			case 2:
-				_velx = -_fSpeed;
-				break;
-			default:
-				break;
+				int TempDistance = 100;
+				int NewTempDistance = 100;
+				for (int y = (int)_posy - 8; y < (int)_posy + 8; y++)
+				{
+					if (y < 0)
+						y = 0;
+					if (y > Height - 1) // Height is from ASM
+						break;
+					for (int x = (int)_posx - 8; x < (int)_posx + 8; x++)
+					{
+						if (x < 0)
+							x = 0;
+						if (x > Width - 1) // Width is from ASM
+							break;
+						if ((int)CharOverlayGridGet(x, y) == 9)
+						{
+							NewTempDistance = (x - (int)_posx) * (x - (int)_posx) + (y - (int)_posy) * (y - (int)_posy);
+							if (NewTempDistance < TempDistance) // Set new closest berry bush coordinates
+							{
+								TempDistance = NewTempDistance;
+								_BerryposX = x;
+								_BerryposY = y;
+								_bNoTarget = false; // On the hunt for berry delicious things
+							}
+						}
+					}
+				}
 			}
-			switch (rand() % 3) // Get movement on y-axis
+			m_fstateTick += 1.5f;
+		}
+
+		if (!_bNoTarget) // This if statement get the rabbit to move towards the berry bush
+		{
+			float fDistance = MoveToTarget(_BerryposX, _BerryposY, _bNoTarget, _posx, _posy, _velx, _vely, _fViewRange, _fReach, _fSpeed, _vPath, _bHave_Path);
+			if (!_bHave_Path)
 			{
-			case 0:
-				_vely = 0.0f;
-				break;
-			case 1:
-				_vely = _fSpeed;
-				break;
-			case 2:
-				_vely = -_fSpeed;
-				break;
-			default:
-				break;
+				_fdestinationX = _BerryposX;
+				_fdestinationY = _BerryposY;
+				_vPath.clear();
 			}
 
+			if (fDistance < _fReach)
+			{
+				if (_fEatCooldown <= 0.0f) // This if for eating the berries
+				{
+					_fullness += _EatAmount; // Makeing the berry bushes have unlimited berries for rabbits at least
+					_fEatCooldown += 0.8f;
+				}
+				else
+					_fEatCooldown -= fElapsedTime;
+			}
+		}
+
+		if (_fullness == 100) // The rabbit is no longer hungery
+			_bNoTarget = true;
+
+		_fPathTimeCounter -= fElapsedTime; // This runs the path finding code
+		if (_fPathTimeCounter <= 0.0f)
+		{
+			if (!_bHave_Path && _bNoTarget)
+			{
+				_fdestinationX = _posx + (float)((rand() % 8) - 4);
+				_fdestinationY = _posy + (float)((rand() % 8) - 4);
+			}
+
+			MoveTo(_fdestinationX, _fdestinationY); // Move to a random nearby location
 			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
 
-			m_fstateTick += 1.5f;
+
+			_fPathTimeCounter += 0.25f;
 		}
 	}
 	else // Nathan: Added for death
@@ -401,13 +562,21 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 		if (!_bNoTarget) //Path finding here
 		{
 
-			float fDistance = MoveToTarget(_Target->_posx, _Target->_posy, _bNoTarget, _posx, _posy, _velx, _vely, _fViewRange, _fReach, _fSpeed);
+			float fDistance = MoveToTarget(_Target->_posx, _Target->_posy, _bNoTarget, _posx, _posy, _velx, _vely, _fViewRange, _fReach, _fSpeed, _vPath, _bHave_Path);
+			if (!_bHave_Path)
+			{
+				if (_fdestinationX != _Target->_posx)
+					_fdestinationX = _Target->_posx;
+				if (_fdestinationY != _Target->_posy)
+					_fdestinationY = _Target->_posy;
+				_vPath.clear();
+			}
 
 			if (!_Target->_bRedundant)
 			{
 				if (fDistance < _fReach)
 				{
-					if (_fCooldown <= 0.0f && ((cDynamic_Creature*)_Target)->_nHealth > 0.0f)
+					if (_fCooldown <= 0.0f && ((cDynamic_Creature*)_Target)->_nHealth > 0.0f) // Attack
 					{
 						((cDynamic_Creature*)_Target)->_nHealth -= _AttackDmg;
 						_fCooldown += 2.0f;
@@ -415,14 +584,14 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 					else
 						_fCooldown -= fElapsedTime;
 
-					if (((cDynamic_Creature*)_Target)->_nHealth <= 0 && ((cDynamic_Creature*)_Target)->_Meatleft > 0 && _fEatCooldown <= 0.0f)
+					if (((cDynamic_Creature*)_Target)->_nHealth <= 0 && ((cDynamic_Creature*)_Target)->_Meatleft > 0 && _fEatCooldown <= 0.0f) // This if for eating the prey
 					{
-						if ((((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount) < 0)
+						if ((((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount) < 0)  // Food left < amount eaten in one bite
 						{
 							_fullness += ((cDynamic_Creature*)_Target)->_Meatleft;
 							((cDynamic_Creature*)_Target)->_Meatleft = 0;
 						}
-						if ((((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount) > 0)
+						else if ((((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount) > 0)  // Food left > amount eaten in one bite
 						{
 							((cDynamic_Creature*)_Target)->_Meatleft -= _EatAmount;
 							_fullness += _EatAmount;
@@ -437,42 +606,27 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 				_bNoTarget = true;
 		}
 
-		m_fstateTick -= fElapsedTime;
+		m_fstateTick -= fElapsedTime; // This runs miscellaneous behaviours
 		if (m_fstateTick <= 0.0f)
 		{
-			switch (rand() % 3) // Get movement on x-axis
-			{
-			case 0:
-				_velx = 0.0f;
-				break;
-			case 1:
-				_velx = _fSpeed;
-				break;
-			case 2:
-				_velx = -_fSpeed;
-				break;
-			default:
-				break;
-			}
-			switch (rand() % 3) // Get movement on y-axis
-			{
-			case 0:
-				_vely = 0.0f;
-				break;
-			case 1:
-				_vely = _fSpeed;
-				break;
-			case 2:
-				_vely = -_fSpeed;
-				break;
-			default:
-				break;
-			}
-
-			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
 			Hunger(_fullness, _HungerDegredation, _nHealth);
 
-			m_fstateTick += ((float)(rand() % 20) * 0.1f + 1.5f);
+			m_fstateTick += (1.5f);
+		}
+
+		_fPathTimeCounter -= fElapsedTime; // This runs the path finding code
+		if (_fPathTimeCounter <= 0.0f)
+		{
+			if (!_bHave_Path && _bNoTarget)
+			{
+				_fdestinationX = _posx + (float)((rand() % 8) - 4);
+				_fdestinationY = _posy + (float)((rand() % 8) - 4);
+			}
+
+			MoveTo(_fdestinationX, _fdestinationY); // Move to a random nearby location
+			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
+
+			_fPathTimeCounter += 0.25f;
 		}
 	}
 	else // Nathan: Added for death
@@ -568,7 +722,15 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 
 		if (!_bNoTarget) //Path finding here
 		{
-			float fDistance = MoveToTarget(_Target->_posx, _Target->_posy, _bNoTarget, _posx, _posy, _velx, _vely, _fViewRange, _fReach, _fSpeed);
+			float fDistance = MoveToTarget(_Target->_posx, _Target->_posy, _bNoTarget, _posx, _posy, _velx, _vely, _fViewRange, _fReach, _fSpeed, _vPath, _bHave_Path);
+			if (!_bHave_Path)
+			{
+				if (_fdestinationX != _Target->_posx)
+					_fdestinationX = _Target->_posx;
+				if (_fdestinationY != _Target->_posy)
+					_fdestinationY = _Target->_posy; 
+				_vPath.clear();
+			}
 
 			if (!_Target->_bRedundant)
 			{
@@ -583,14 +745,14 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 						_fCooldown -= fElapsedTime;
 
 					// Eat
-					if (((cDynamic_Creature*)_Target)->_nHealth <= 0 && ((cDynamic_Creature*)_Target)->_Meatleft > 0 && _fEatCooldown <= 0.0f)
+					if (((cDynamic_Creature*)_Target)->_nHealth <= 0 && ((cDynamic_Creature*)_Target)->_Meatleft > 0 && _fEatCooldown <= 0.0f)  // This if for eating the prey
 					{
 						if ((((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount) < 0) // Food left < amount eaten in one bite
 						{
 							_fullness += ((cDynamic_Creature*)_Target)->_Meatleft;
 							((cDynamic_Creature*)_Target)->_Meatleft = 0;
 						}
-						if ((((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount) > 0) // Food left > amount eaten in one bite
+						else if ((((cDynamic_Creature*)_Target)->_Meatleft - _EatAmount) > 0) // Food left > amount eaten in one bite
 						{
 							((cDynamic_Creature*)_Target)->_Meatleft -= _EatAmount;
 							_fullness += _EatAmount;
@@ -605,42 +767,27 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 				_bNoTarget = true;
 		}
 
-		m_fstateTick -= fElapsedTime;
-		if (m_fstateTick <= 0.0f) // Normal updating here (movement and fullness)
+		m_fstateTick -= fElapsedTime; // This runs miscellaneous behaviours
+		if (m_fstateTick <= 0.0f)
 		{
-			switch (rand() % 3) // Get movement on x-axis
-			{
-			case 0:
-				_velx = 0.0f;
-				break;
-			case 1:
-				_velx = _fSpeed;
-				break;
-			case 2:
-				_velx = -_fSpeed;
-				break;
-			default:
-				break;
-			}
-			switch (rand() % 3) // Get movement on y-axis
-			{
-			case 0:
-				_vely = 0.0f;
-				break;
-			case 1:
-				_vely = _fSpeed;
-				break;
-			case 2:
-				_vely = -_fSpeed;
-				break;
-			default:
-				break;
-			}
-
-			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
 			Hunger(_fullness, _HungerDegredation, _nHealth);
 
-			m_fstateTick += ((float)(rand() % 20) * 0.1f + 1.5f);
+			m_fstateTick += (1.5f);
+		}
+
+		_fPathTimeCounter -= fElapsedTime; // This runs the path finding code
+		if (_fPathTimeCounter <= 0.0f)
+		{
+			if (!_bHave_Path && _bNoTarget)
+			{
+				_fdestinationX = _posx + (float)((rand() % 8) - 4);
+				_fdestinationY = _posy + (float)((rand() % 8) - 4);
+			}
+
+			MoveTo(_fdestinationX, _fdestinationY); // Move to a random nearby location
+			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
+
+			_fPathTimeCounter += 0.25f;
 		}
 	}
 	else // Nathan: Added for death
@@ -692,7 +839,8 @@ void MovementCheck(float& x, float& y, float& oldx, float& oldy, string name)
 
 float MoveToTarget(const int Target_posx, const int Target_posy, bool& bNoTarget,
 	const float posx, const float posy, float& velx, float& vely,
-	const float fViewRange, const float& fReach, const float& fSpeed)
+	const float fViewRange, const float& fReach, const float& fSpeed,
+	vector<int>& vPath, bool& bHave_Path)
 {
 	// Check if _Target is nearby
 	float fTargetX = Target_posx - posx;
@@ -700,30 +848,31 @@ float MoveToTarget(const int Target_posx, const int Target_posy, bool& bNoTarget
 	float fDistance = sqrtf(fTargetX * fTargetX + fTargetY * fTargetY);
 	if (fDistance < fViewRange)
 	{
-		if (fDistance > fReach)
+		if (fDistance > fReach / 2.0f)
 		{
-			velx = (fTargetX / fDistance) * fSpeed;
-			if (velx > 5.0f)
-				velx = 5.0f;
-			if (velx < -5.0f)
-				velx = -5.0f;
-			vely = (fTargetY / fDistance) * fSpeed;
-			if (vely > 5.0f)
-				vely = 5.0f;
-			if (vely < -5.0f)
-				vely = -5.0f;
+			//velx = (fTargetX / fDistance) * fSpeed;
+			//if (velx > 5.0f)
+			//	velx = 5.0f;
+			//if (velx < -5.0f)
+			//	velx = -5.0f;
+			//vely = (fTargetY / fDistance) * fSpeed;
+			//if (vely > 5.0f)
+			//	vely = 5.0f;
+			//if (vely < -5.0f)
+			//	vely = -5.0f;
+
 		}
 		else
 		{
 			velx = 0;
 			vely = 0;
+			bHave_Path = false;
+			vPath.clear();
 		}
 	}
 	else
 	{
 		bNoTarget = true;
-		velx = 0;
-		vely = 0;
 	}
 	return fDistance;
 }
@@ -749,4 +898,26 @@ void Hunger(int& fullness, const int & HungerDegredation, int& Health)
 		Health -= 3;
 	if (fullness < 0)
 		fullness = 0;
+}
+
+// Returns a fixed movement speed for any direction
+void MovementCorrection(const float movementspeed, float& velx, float& vely, 
+	const float startposx, const float startposy, 
+	const float finishposx, const float finishposy)
+{
+	float diffx = (startposx - finishposx);
+	float diffy = (startposy - finishposy);
+	if (diffy < 0.0001f && diffy > -0.0001f)
+		diffy = 0.001f;
+	if (diffx < 0.0001f && diffx > -0.0001f)
+		diffx = 0.001f;
+
+	// Finding X component
+	velx = (cos(atan(diffy / diffx)) * movementspeed);
+	if (startposx - finishposx > 0.0f)
+		velx *= -1.0f;
+	// Finding Y component
+	vely = (cos(atan(diffx / diffy)) * movementspeed);
+	if (startposy - finishposy > 0.0f)
+		vely *= -1.0f;
 }

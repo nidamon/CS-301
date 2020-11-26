@@ -84,7 +84,17 @@ public:
 	float _fEatCooldown;
 	int _FoodChain;
 	cDynamic* _Target;
+
 	float _fSpeed;
+	bool _bHave_Path;
+	std::vector<int> _vPath;
+	float _posx1; // The four pos here are for calculating the next point to move to
+	float _posy1;
+	float _posx2;
+	float _posy2;
+	float _fPathTimeCounter;
+	float _fdestinationX;
+	float _fdestinationY;
 
 	float _HungerDegredation;
 	float _fRegenrationTimeForOneHP;
@@ -95,6 +105,7 @@ public:
 	virtual void Update(float fElapsedTime, int season, cDynamic* target = nullptr) override;
 	virtual void Behaviour(float fElapsedTime, int season, cDynamic* target = nullptr);
 	int GetFacingDirection();
+	float MoveTo(const float Target_posx, const float Target_posy); // Nathan: Path finds and moves in a direction
 
 protected:
 	float m_fstateTick;
@@ -107,6 +118,8 @@ class cDynamic_Creature_Rabbit : public cDynamic_Creature
 {
 public:
 	cDynamic_Creature_Rabbit();
+	int _BerryposX;
+	int _BerryposY;
 	virtual void Behaviour(float fElapsedTime, int season, cDynamic* target = nullptr) override;
 
 };

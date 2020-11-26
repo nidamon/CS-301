@@ -27,11 +27,9 @@
     <ClCompile Include="DecalMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Project 301.asm">
+    <ClCompile Include="PathFinding.cpp">
       <Filter>Source Files</Filter>
-    </None>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dynamic.h">
@@ -46,5 +44,13 @@
     <ClInclude Include="olcPixelGameEngine.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
+    <ClInclude Include="PathFinding.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Project 301.asm">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
