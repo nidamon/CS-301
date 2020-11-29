@@ -29,7 +29,6 @@ extern "C" char CharGridGet(int, int); // Reads from the char grid and returns t
 extern "C" int BoolGridModify(int, int); // Modifies the bool grid
 extern "C" int BoolGridGet(int, int); // Reads from the bool grid and returns collision bool
 
-
 cMap::cMap()
 {
 	pDecalB = nullptr;
@@ -238,7 +237,7 @@ bool cMap_Plains::PopulateDynamics(vector<cDynamic*>& vecDyns, std::default_rand
 		}
 	}
 	// Bear
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		std::uniform_int_distribution<int> uniform_dist(0, 128);
 		cDynamic* g1 = new cDynamic_Creature_Bear();
@@ -276,6 +275,5 @@ bool cMap_Plains::OnInteraction(vector<cDynamic*>& vecDynobject, cDynamic* targe
 		cDynamic_Creature* dyn = (cDynamic_Creature*)target;
 		dyn->_nHealth = max(dyn->_nHealth - 15, 0);
 	}
-
 	return false;
 }

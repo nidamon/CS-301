@@ -28,7 +28,6 @@ public:
 	bool _bSolidVsDyn;
 	bool _bFriendly;
 	bool _bRedundant;
-	bool _bIsAttackable;  // Do I need this? //  probably not for this project ////////////////////////////////////////////////////////////////////////////////
 	string _sName;
 
 	float _Mass; // Nathan: added this for some movement code that I think will turn out interesting

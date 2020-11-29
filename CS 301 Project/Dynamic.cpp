@@ -66,7 +66,6 @@ cDynamic_Creature::cDynamic_Creature(string name, olc::Decal* sprite) : cDynamic
 	m_fTimer = 0.0f;
 	m_fstateTick = 0.5f;
 	_bRedundant = false;
-	_bIsAttackable = true;
 	
 	// Nathan: Added the below variables
 	_DurationBeforeDeletion = 9.0f; 
@@ -143,29 +142,24 @@ void cDynamic_Creature::Update(float fElapsedTime, int season, cDynamic* target)
 					_fRegenTimer = 0.0f;
 				}
 
-
-
 	Behaviour(fElapsedTime, season, target);////////////////////////////////////////////////////
 }
 
 void cDynamic_Creature::DrawSelf(PixelGameEngine* gfx, float offsetx, float offsety)
 {
-	float nSheetOffsetX = 0;
+	float nSheetOffsetX = 0; // Offset in the sprite sheet in the case that the there are other sprites before this one on it
 	float nSheetOffsetY = 0;
 
-	switch (m_nGraphicState) // 17:30 Part #2
+	switch (m_nGraphicState) // Picks the partial sprite according to how the creature is behaiving
 	{
 	case STANDING:
 		nSheetOffsetX = m_nFacingDirection * 16;
 		break;
 	case WALKING:
 		nSheetOffsetX = m_nFacingDirection * 16;
-		nSheetOffsetY = m_nGraphicCounter * 16; // ~19:00
+		nSheetOffsetY = m_nGraphicCounter * 16;
 		break;
-	case CELEBRATING: //5th item 1st row
-		nSheetOffsetX = 4 * 16;
-		break;
-	case DEAD: //5th item 2nd row
+	case DEAD: //5th item 2nd row of sprite sheet
 		nSheetOffsetX = 4 * 16;
 		nSheetOffsetY = 1 * 16;
 		break;
@@ -232,8 +226,6 @@ float cDynamic_Creature::MoveTo(float Target_posx, float Target_posy)
 		return distance;
 	}
 
-
-	//cout << _sName << ":" << endl;
 	if ((int)Target_posx < 1) // Correct the x and y for using the integral image
 		Target_posx = 1.0;
 	if ((int)Target_posy < 1)
@@ -243,33 +235,15 @@ float cDynamic_Creature::MoveTo(float Target_posx, float Target_posy)
 	if ((int)Target_posy > Width - 1) // The width is the same as the hieght
 		Target_posy = Width - 1;
 
-
-	//if (!_bHave_Path)
-	//{
-	//	cout << "Area Sum of (" << (int)_posx << "," << (int)_posy << ") to (" << (int)Target_posx << "," << (int)Target_posy << "): ";
-	//	cout << IntegralGridAreaSumGet((int)_posx, (int)_posy, (int)Target_posx, (int)Target_posy) << endl;
-	//}
-	//if (IntegralGridAreaSumGet((int)_posx, (int)_posy, (int)Target_posx, (int)Target_posy) == 0) // The path to target pos is clear
-	//{
-	//	_posx1 = Target_posx;
-	//	_posy1 = Target_posy;
-	//	_bHave_Path = true;
-	//	cout << "Clear Path" << endl;
-	//	cout << "intPath size: " << _vPath.size() << endl;
-	//}
-
 	if (!_bHave_Path)
 	{
 		PathFinding Path((int)_posx, (int)_posy, (int)Target_posx, (int)Target_posy);
 		_vPath = Path.Path_Get(); // Creates and returns a path to follow
 		if (_vPath[0] == -1)
 		{
-			cout << "Path destination unreachable" << endl;
 			_vPath.clear();
 			return 0.0f; // Stops the path finding
 		}
-		if (_vPath.size() > 1)
-			cout << "Path size: " << _vPath.size() << endl;
 		_bHave_Path = true;
 
 		_posx1 = (float)(_vPath.back() % Width);
@@ -290,7 +264,6 @@ float cDynamic_Creature::MoveTo(float Target_posx, float Target_posy)
 			if ((_posx1 - _posx2) * (_posx1 - _posx2) + (_posy1 - _posy2) * (_posy1 - _posy2) + 0.01f >
 				(_posx2 - _posx)* (_posx2 - _posx) + (_posy2 - _posy) * (_posy2 - _posy))
 			{
-				cout << "Reseting local destination" << endl;
 				_vPath.pop_back(); // Remove the last item as we are at its location
 				_posx1 = _posx2;
 				_posy1 = _posy2;
@@ -299,7 +272,6 @@ float cDynamic_Creature::MoveTo(float Target_posx, float Target_posy)
 					_posx2 = (float)(_vPath[_vPath.size() - 2] % Width); // These get the x and y of the second to last item
 					_posy2 = (float)(_vPath[_vPath.size() - 2] / Width);
 				}
-				cout << "Moving from (" << _posx << "," << _posy << ") to (" << _posx1 << "," << _posy1 << ")" << endl;
 			}
 			MovementCorrection(_fSpeed, _velx, _vely, _posx, _posy, _posx1, _posy1);
 		}
@@ -308,7 +280,6 @@ float cDynamic_Creature::MoveTo(float Target_posx, float Target_posy)
 			MovementCorrection(_fSpeed, _velx, _vely, _posx, _posy, _posx1, _posy1);
 			if ((_posx1 - _posx) * (_posx1 - _posx) + (_posy1 - _posy) * (_posy1 - _posy) < 0.125f) // 0.25 being 0.5 units away from target pos
 			{
-				cout << "I'm there" << endl;
 				if (_vPath.size() == 1)
 					_vPath.pop_back(); // Remove the final item as we are at its location
 				_bHave_Path = false;
@@ -320,14 +291,12 @@ float cDynamic_Creature::MoveTo(float Target_posx, float Target_posy)
 
 //##################################################################################################
 
-
 cDynamic_Creature_Rabbit::cDynamic_Creature_Rabbit() : cDynamic_Creature("Rabbit", DecalMap::get().GetDecal("Rabbit"))
 {
 	_bFriendly = false;
 	_nHealth = 20;
 	_nHealthMax = 20;
 	m_fstateTick = 1.0f;
-	_bIsAttackable = true;
 	_bRedundant = false;
 	_bMingle = false;
 	_bHasMingled = false;
@@ -352,7 +321,7 @@ cDynamic_Creature_Rabbit::cDynamic_Creature_Rabbit() : cDynamic_Creature("Rabbit
 
 void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynamic* target)
 {
-	if (_nHealth > 0) // If the rabbit is still alive
+	if (_nHealth > 0) //Nathan: If the rabbit is still alive
 	{
 
 		if (_GrowthStage != 3 && _age < 100.0f) // Nathan: Added for aging
@@ -391,7 +360,6 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 		{
 			_bHasMingled = false;
 		}
-
 
 		m_fstateTick -= fElapsedTime; // This runs miscellaneous behaviours 
 		if (m_fstateTick <= 0.0f)
@@ -464,9 +432,8 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 				_fdestinationY = _posy + (float)((rand() % 8) - 4);
 			}
 
-			MoveTo(_fdestinationX, _fdestinationY); // Move to a random nearby location
+			MoveTo(_fdestinationX, _fdestinationY); // Move to the set location
 			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
-
 
 			_fPathTimeCounter += 0.25f;
 		}
@@ -483,14 +450,12 @@ void cDynamic_Creature_Rabbit::Behaviour(float fElapsedTime, int season, cDynami
 
 //##################################################################################################
 
-
 cDynamic_Creature_Fox::cDynamic_Creature_Fox() : cDynamic_Creature("Fox", DecalMap::get().GetDecal("Fox"))
 {
 	_bFriendly = false;
 	_nHealth = 50;
 	_nHealthMax = 50;
 	m_fstateTick = 1.0f;
-	_bIsAttackable = true;
 	_bRedundant = false;
 	_bMingle = false;
 	_bHasMingled = false;
@@ -515,7 +480,7 @@ cDynamic_Creature_Fox::cDynamic_Creature_Fox() : cDynamic_Creature("Fox", DecalM
 
 void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* target)
 {
-	if (_nHealth > 0) // If the Fox is still alive
+	if (_nHealth > 0) //Nathan: If the Fox is still alive
 	{
 		if (_GrowthStage != 3 && _age < 100.0f) // Nathan: Added for aging
 		{
@@ -547,9 +512,6 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 
 		}
 
-
-
-
 		if (_GrowthStage == 3 && season == 1 && !_bHasMingled)
 			_bMingle = true;
 		if (_GrowthStage == 3 && season != 1)
@@ -561,7 +523,6 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 
 		if (!_bNoTarget) //Path finding here
 		{
-
 			float fDistance = MoveToTarget(_Target->_posx, _Target->_posy, _bNoTarget, _posx, _posy, _velx, _vely, _fViewRange, _fReach, _fSpeed, _vPath, _bHave_Path);
 			if (!_bHave_Path)
 			{
@@ -610,7 +571,6 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 		if (m_fstateTick <= 0.0f)
 		{
 			Hunger(_fullness, _HungerDegredation, _nHealth);
-
 			m_fstateTick += (1.5f);
 		}
 
@@ -623,7 +583,12 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 				_fdestinationY = _posy + (float)((rand() % 8) - 4);
 			}
 
-			MoveTo(_fdestinationX, _fdestinationY); // Move to a random nearby location
+			if (!_bNoTarget && ((_Target->_posx - _posx) * (_Target->_posx - _posx) + (_Target->_posy - _posy) * (_Target->_posy - _posy)) < _fReach * _fReach) // If the creature isn't close enough to a target
+			{
+				// There is nothing to do here
+			}
+			else
+				MoveTo(_fdestinationX, _fdestinationY); // Move to the set location
 			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
 
 			_fPathTimeCounter += 0.25f;
@@ -636,7 +601,6 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 		_DurationBeforeDeletion -= fElapsedTime;
 		if (_DurationBeforeDeletion < 0.0f)
 		{
-			//std::cout << "Fox removed with " << _nHealth << "health at (" << _posx << "," << _posy << ").";
 			_bRedundant = true;
 		}
 
@@ -645,14 +609,12 @@ void cDynamic_Creature_Fox::Behaviour(float fElapsedTime, int season, cDynamic* 
 
 //##################################################################################################
 
-
 cDynamic_Creature_Bear::cDynamic_Creature_Bear() : cDynamic_Creature("Bear", DecalMap::get().GetDecal("Bear"))
 {
 	_bFriendly = false;
 	_nHealth = 100;
 	_nHealthMax = 100;
 	m_fstateTick = 1.0f;
-	_bIsAttackable = true;
 	_bRedundant = false;
 	_bMingle = false;
 	_bHasMingled = false;
@@ -677,7 +639,7 @@ cDynamic_Creature_Bear::cDynamic_Creature_Bear() : cDynamic_Creature("Bear", Dec
 
 void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic* target)
 {
-	if (_nHealth > 0) // If the Bear is still alive
+	if (_nHealth > 0) //Nathan: If the Bear is still alive
 	{
 		if (_GrowthStage != 3 && _age < 100.0f) // Nathan: Added for aging
 		{
@@ -784,7 +746,12 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 				_fdestinationY = _posy + (float)((rand() % 8) - 4);
 			}
 
-			MoveTo(_fdestinationX, _fdestinationY); // Move to a random nearby location
+			if (!_bNoTarget && ((_Target->_posx - _posx) * (_Target->_posx - _posx) + (_Target->_posy - _posy) * (_Target->_posy - _posy)) < _fReach * _fReach) // If the creature isn't close enough to a target
+			{
+				// There is nothing to do here
+			}
+			else
+				MoveTo(_fdestinationX, _fdestinationY); // Move to the set location
 			MovementCheck(_posx, _posy, _oldposx, _oldposy, _sName);
 
 			_fPathTimeCounter += 0.25f;
@@ -803,22 +770,11 @@ void cDynamic_Creature_Bear::Behaviour(float fElapsedTime, int season, cDynamic*
 	}
 }
 
-
-
-
-
-
-
-
+//##################################################################################################
 //##################################################################################################
 
-
-
-//##################################################################################################
-
-
-
-void MovementCheck(float& x, float& y, float& oldx, float& oldy, string name)
+// Informs of improper jumping to new location
+void MovementCheck(float& x, float& y, float& oldx, float& oldy, string name) 
 {
 	if ((int)oldx != 0 && (int)oldy != 0)
 		if (oldx - 5.0f < x && oldx + 5.0f > x && oldy - 5.0f < y && oldy + 5.0f > y)
@@ -837,6 +793,7 @@ void MovementCheck(float& x, float& y, float& oldx, float& oldy, string name)
 		}
 }
 
+// Determines if the creature is close enough to reach the target
 float MoveToTarget(const int Target_posx, const int Target_posy, bool& bNoTarget,
 	const float posx, const float posy, float& velx, float& vely,
 	const float fViewRange, const float& fReach, const float& fSpeed,
@@ -848,21 +805,7 @@ float MoveToTarget(const int Target_posx, const int Target_posy, bool& bNoTarget
 	float fDistance = sqrtf(fTargetX * fTargetX + fTargetY * fTargetY);
 	if (fDistance < fViewRange)
 	{
-		if (fDistance > fReach / 2.0f)
-		{
-			//velx = (fTargetX / fDistance) * fSpeed;
-			//if (velx > 5.0f)
-			//	velx = 5.0f;
-			//if (velx < -5.0f)
-			//	velx = -5.0f;
-			//vely = (fTargetY / fDistance) * fSpeed;
-			//if (vely > 5.0f)
-			//	vely = 5.0f;
-			//if (vely < -5.0f)
-			//	vely = -5.0f;
-
-		}
-		else
+		if (fDistance < fReach / 2.0f)
 		{
 			velx = 0;
 			vely = 0;
@@ -877,6 +820,7 @@ float MoveToTarget(const int Target_posx, const int Target_posy, bool& bNoTarget
 	return fDistance;
 }
 
+// Determines if the creature should hunt
 void ShouldHunt(bool &bHunt, const float& fullness, bool& bNoTarget)
 {
 	if (!bHunt)

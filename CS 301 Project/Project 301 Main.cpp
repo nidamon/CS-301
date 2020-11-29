@@ -9,8 +9,6 @@ and his RPG game tutorial from which I built upon for this project.
 
 //Main is at the bottom of this file
 
-
-
 #define OLC_PGE_APPLICATION
 #include "Project_Maps.h"
 #include "DecalMap.h"
@@ -19,7 +17,6 @@ and his RPG game tutorial from which I built upon for this project.
 using namespace olc;
 #include <iostream>
 using std::cout;
-using std::cin;
 using std::endl;
 #include <string>
 using std::string;
@@ -27,24 +24,6 @@ using std::string;
 #include <math.h>
 #include <iomanip>
 using std::setw;
-using std::right;
-
-//Assembly Functions Ahead!!!
-
-extern "C" int set_int_variable1(int value);
-extern "C" int set_int_variable2(int value);
-extern "C" int set_int_variable3(int value);
-extern "C" int set_int_variable4(int value);
-extern "C" float set_float_variable1(int value);
-extern "C" float set_float_variable2(int value);
-extern "C" float set_float_variable3(int value);
-extern "C" float set_float_variable4(int value);
-extern "C" int set_all_function_use_variables_to_0(void);
-
-
-// Unimplemented
-extern "C" int wants_to_eat(void); // Takes float_variable1(fullness) and float_variable2(maxfullness)
-
 
 // Implemented
 extern "C" int SeasonOfYear(float); // Takes a float of time and returns 1-4 based on season
@@ -60,7 +39,7 @@ class Topdown_Game : public olc::PixelGameEngine
 public:
 	Topdown_Game()
 	{
-		// Name you application
+		// Name of application
 		sAppName = "Habitat Simulation";
 	}
 
@@ -80,27 +59,21 @@ private:
 	bool OverlayEditor = false;
 	bool Draw_impassables = false;
 	int Selected_tile = 0;
-	int editorY_adjustment = 0;
-	bool Cheats_allowed = true;
+	bool Editing_Tools_allowed = true; // Enables the use of the former cheats but now classified as editing tools
 	float Time = 0;
 	int season = 4; // 1 = spring, 2 = summer, 3 = fall, 4 = winter
 	float YearLength = 60.0f; // Seconds
 	vector<cDynamic*> m_nvecDynamics_que; // Ques up the new creatures to be placed in the world
 	int Dynamic_Cap = 80; // Set a limit to the number of creatures
-	int BrushSize = 0;
+	int BrushSize = 0; // Size of brush when editing
 
+	// Variables for navigation
 	int Navigate = 0;
 	bool bNavigate = false;
-	float NavTimeElapse = 0.0f;
 	float NavXMouse = 0;
 	float NavYMouse = 0;
 	int NavX = 5;
 	int NavY = 5;
-
-	// Remove
-	float Repulsion = 2.2f; // How fast the creatures will repel each other when overlapping
-	float RepulsionRate = 15.0f; // How fast creatures are repulsed
-	//int Zoom = 1;
 
 protected:
 	virtual bool OnUserCreate()// Called once at the start, so create things here
@@ -119,8 +92,8 @@ protected:
 		m_pPlayer->_GrowthStage = 3;
 		m_pPlayer->_Mass = 8.0f; // Pay no attention the lightweight Player!
 		m_pPlayer->_DynamicRadius = 0.6f;
-		m_pPlayer->_nHealthMax = 400;
-		m_pPlayer->_nHealth = 400;
+		m_pPlayer->_nHealthMax = 50;
+		m_pPlayer->_nHealth = 50;
 
 		m_nvecDynamics.push_back(m_pPlayer); // Put player in the vector first
 		m_pCurrentMap->PopulateDynamics(m_nvecDynamics, e1);
@@ -142,7 +115,7 @@ protected:
 		// Handle Input
 		if (IsFocused())
 		{
-			if (Cheats_allowed)
+			if (Editing_Tools_allowed)
 			{
 				// Nathan: Added mouse clicking
 				if (GetKey(T).bHeld) // Nathan: T for Teleport
@@ -221,7 +194,7 @@ protected:
 					}
 				}
 				// Nathan: Added brush sizes
-				if (GetKey(B).bHeld) // Second mouse button
+				if (GetKey(B).bHeld)
 				{
 					if (int(GetMouseWheel()) != 0)
 					{
@@ -232,7 +205,7 @@ protected:
 					if (BrushSize > 10) BrushSize = 10;
 				}
 				// Nathan: Added speed hacks
-				if (GetKey(V).bHeld) // Second mouse button
+				if (GetKey(V).bHeld)
 				{
 					if (int(GetMouseWheel()) != 0)
 					{
@@ -243,7 +216,7 @@ protected:
 					if (m_pPlayer->_fSpeed > 20.0f) m_pPlayer->_fSpeed = 20.f;
 				}
 				// Nathan: Added population limiter
-				if (GetKey(P).bHeld) // Second mouse button
+				if (GetKey(P).bHeld)
 				{
 					if (int(GetMouseWheel()) != 0)
 					{
@@ -251,30 +224,6 @@ protected:
 						if (Dynamic_Cap < 5) Dynamic_Cap = 5;
 						if (Dynamic_Cap > 200) Dynamic_Cap = 200;
 						cout << "Dynamic_Cap = " << Dynamic_Cap << endl;
-					}
-				}
-				// Nathan: Added repulsion adjustment
-				if (GetKey(R).bHeld)
-				{
-					if (GetMouse(0).bHeld) // First mouse button
-					{
-						if (int(GetMouseWheel()) != 0)
-						{
-							Repulsion += float(GetMouseWheel()) / 1200;
-							cout << "Repulsion = " << Repulsion << endl;
-						}
-						if (Repulsion < 0.1f) Repulsion = 0.1f; // limiting Repulsion at 0.1
-						if (Repulsion > 3.0f) Repulsion = 3.0f; // limiting Repulsion at 3.0
-					}
-					if (GetMouse(1).bHeld) // Second mouse button
-					{
-						if (int(GetMouseWheel()) != 0)
-						{
-							RepulsionRate += float(GetMouseWheel()) / 600;
-							cout << "RepulsionRate = " << RepulsionRate << endl;
-						}
-						if (RepulsionRate < 0.1f) RepulsionRate = 0.1f; // limiting RepulsionRate at 0.1
-						if (RepulsionRate > 30.0f) RepulsionRate = 30.0f; // limiting RepulsionRate at 30.0
 					}
 				}
 			}
@@ -288,16 +237,6 @@ protected:
 					bNavigate = true;
 				}
 			}
-			//if (GetKey(Z).bHeld)
-			//{
-			//	if (int(GetMouseWheel()) != 0)
-			//	{
-			//		Zoom += int(GetMouseWheel()) / 120;
-			//		if (Zoom < 1) Zoom = 1; // Hardcoding 100 sprite limitation
-			//		if (Zoom > 4) Player_speed = 20.f;
-			//		cout << "Zoom = " << Zoom << endl;
-			//	}
-			//}
 			if (GetKey(UP).bHeld || GetKey(W).bHeld) // Nathan: Added the wasd keys
 			{
 				m_pPlayer->_vely = -m_pPlayer->_fSpeed;
@@ -361,7 +300,7 @@ protected:
 		// Nathan: added path finding for the player     
 		if (Navigate != 0) //This needs to go before the code that runs over the updating
 		{
-			if (GetMouse(0).bReleased ||
+			if (GetMouse(0).bReleased || // Stop navigating if: the following conditions
 				GetKey(UP).bHeld || GetKey(W).bHeld ||
 				GetKey(DOWN).bHeld || GetKey(S).bHeld ||
 				GetKey(LEFT).bHeld || GetKey(A).bHeld ||
@@ -371,7 +310,7 @@ protected:
 				m_pPlayer->_vPath.clear();
 				m_pPlayer->_bHave_Path = false;
 			}
-			if (Navigate == 2)
+			if (Navigate == 2) // We are trying to navigate to a new location so remove the location we were navigating to previously
 			{
 				m_pPlayer->_vPath.clear();
 				m_pPlayer->_bHave_Path = false;
@@ -379,25 +318,7 @@ protected:
 			}
 			if (m_pPlayer->MoveTo(NavX, NavY) <= 0.065f)
 				Navigate = 0;
-			//cout << "VelX: " << m_nvecDynamics[0]->_velx << endl;
-			//cout << "VelY: " << m_nvecDynamics[0]->_vely << endl;
-
-
-
-			/*if (NavTimeElapse <= 0.0f)
-			{
-
-				cout << NavTimeElapse << endl;
-				NavTimeElapse = 0.5f;
-
-
-			}
-			else
-				NavTimeElapse -= fElapsedTime;*/
-
 		}
-
-
 
 		if (m_nvecDynamics.size() > Dynamic_Cap) // Nathan: added entity cap
 		{
@@ -416,7 +337,7 @@ protected:
 					cout << "A " << object->_sName << " got outside the habitat!" << endl;
 				}
 
-			float fNewObjectPosX = object->_posx + object->_velx * fElapsedTime;
+			float fNewObjectPosX = object->_posx + object->_velx * fElapsedTime; // Set new positions
 			float fNewObjectPosY = object->_posy + object->_vely * fElapsedTime;
 
 			// Collision
@@ -458,7 +379,7 @@ protected:
 				}
 			}
 
-			float fDynamicObjectPosX = fNewObjectPosX;
+			float fDynamicObjectPosX = fNewObjectPosX; // New position after collision checking
 			float fDynamicObjectPosY = fNewObjectPosY;
 
 			// Nathan: Checks the creature for if it can spawn a new creature
@@ -537,7 +458,6 @@ protected:
 
 						// Get the distance between the centers of the objects
 						float Distance = sqrt(diffx * diffx + diffy * diffy);
-						//cout << "We check distance = " << Distance << endl;
 
 						// Amount of overlap between cricular bounds
 						float Overlap = (((cDynamic_Creature*)object)->_DynamicRadius + ((cDynamic_Creature*)dyn)->_DynamicRadius - Distance);
@@ -557,7 +477,7 @@ protected:
 							// Finding X component
 							float Xval = cos(atan(diffx / diffy));
 
-							// Set the velocity in the x and y directions
+							// Set the velocity in the y direction
 							float YComponent = (Overlap) * (Yval) * (((cDynamic_Creature*)dyn)->_Mass);
 							if ((object->_posx - dyn->_posx) < 0.0f)
 							{
@@ -572,33 +492,19 @@ protected:
 									((cDynamic_Creature*)object)->_collision_vely = YComponent;
 							}
 
-
+							// Set the velocity in the x direction
 							float XComponent = (Overlap) * (Xval) * (((cDynamic_Creature*)dyn)->_Mass);
 							if ((object->_posx - dyn->_posx) < 0.0f)
 							{
 								((cDynamic_Creature*)object)->_collision_velx += -XComponent * fElapsedTime;
 								if (((cDynamic_Creature*)object)->_collision_velx < -XComponent)
 									((cDynamic_Creature*)object)->_collision_velx = -XComponent;
-
 							}
 							else if ((object->_posx - dyn->_posx) > 0.0f)
 							{
 								((cDynamic_Creature*)object)->_collision_velx += XComponent * fElapsedTime;
 								if (((cDynamic_Creature*)object)->_collision_velx > XComponent)
 									((cDynamic_Creature*)object)->_collision_velx = XComponent;
-							}
-						}
-					}
-					else
-					{
-						if (object == m_nvecDynamics[0])
-						{
-							// Object is player and can interact with things
-							if (fDynamicObjectPosX < (dyn->_posx + 1.0f) && (fDynamicObjectPosX + 1.0f) > dyn->_posx&&
-								object->_posy < (dyn->_posy + 1.0f) && (object->_posy + 1.0f) > dyn->_posy)
-							{
-								// Then check if it is map related
-								//~20:25
 							}
 						}
 					}
@@ -611,7 +517,7 @@ protected:
 				object->_collision_velx = 0;
 				object->_collision_vely = 0;
 			}
-			object->_number_collisions = 0; // Reset
+			object->_number_collisions = 0; // Reset collision counter
 
 
 			object->_posx = fDynamicObjectPosX + (object->_collision_velx + object->_velx) * fElapsedTime; // ~32:12
@@ -633,16 +539,12 @@ protected:
 						if (NewfDistance < fDistance)
 						{
 							fDistance = NewfDistance;
-							//((cDynamic_Creature*)object)->_bTargetSelected = true;
 							((cDynamic_Creature*)object)->_bNoTarget = false;
 							((cDynamic_Creature*)object)->_Target = dyn;
 						}
 					}
-						
-
 				}
 			}
-
 
 			object->Update(fElapsedTime, season, m_nvecDynamics[0]);
 		}
@@ -655,9 +557,7 @@ protected:
 				m_nvecDynamics_que.pop_back();
 			}
 
-
-
-		fCameraPosX = m_pPlayer->_posx;
+		fCameraPosX = m_pPlayer->_posx; // Set camera position to player position
 		fCameraPosY = m_pPlayer->_posy;
 
 		//Draw level
@@ -685,11 +585,12 @@ protected:
 		{
 			for (int y = -1; y < nVisibleTilesY + 1; y++)
 			{
-				int idx = m_pCurrentMap->GetIndex(x + fOffsetX, y + fOffsetY);
+				int idx = m_pCurrentMap->GetIndex(x + fOffsetX, y + fOffsetY); // Draw tiles for map
 				int sx = idx % 10;
 				int sy = idx / 10;
 				DrawPartialDecal({ x * nTileWidth - fTileOffsetX, y * nTileHeight - fTileOffsetY }, m_pCurrentMap->pDecalB, { float(sx) * nTileWidth, float(sy) * nTileHeight }, { 16, 16 });
-				int idxO = m_pCurrentMap->GetOverlayIndex(x + fOffsetX, y + fOffsetY);
+
+				int idxO = m_pCurrentMap->GetOverlayIndex(x + fOffsetX, y + fOffsetY); // Draw tiles over map (these are things that would not change terrain but would still be placed)
 				int sxo = idxO % 10;
 				int syo = idxO / 10;
 				if (idxO != 1)
@@ -697,10 +598,10 @@ protected:
 			}
 		}
 
-		// Combined Map editor and impassable editor into one with brushes
+		//Nathan: Combined Map editor and impassable editor into one with brushes
 		if (Draw_impassables || Editor || OverlayEditor)
 		{
-			// Size of square changed (brush size)
+			//Nathan: Size of painting square changed (brush size)
 			int xstart = int((fOffsetX * nTileHeight + GetMouseX()) / 16) - BrushSize;
 			int xfinish = (int((fOffsetX * nTileHeight + GetMouseX()) / 16) + 1 + BrushSize);
 			int ystart = int((fOffsetY * nTileHeight + GetMouseY()) / 16) - BrushSize;
@@ -720,10 +621,10 @@ protected:
 						xstart = 1;
 					if (ystart < 1)
 						ystart = 1;
-					IntegralGridResetFrom(xstart, ystart);
-					cout << "IntegralGridReset" << endl;
+					IntegralGridResetFrom(xstart, ystart); // Reset the integral image as it is changed
 				}
 
+				// Nathan: Place or remove solid tile status
 				if (GetMouse(0).bHeld || GetMouse(1).bHeld) // If left or right mouse click + hold - > continues to place until not held
 				{
 					bool selected = false;
@@ -732,11 +633,9 @@ protected:
 					else
 						selected = false; // Set impassable
 
-
 					for (int x = xstart; x < xfinish; x++)
 						for (int y = ystart; y < yfinish; y++)
-							m_pCurrentMap->ModifySolid(x, y, selected);
-
+							m_pCurrentMap->ModifySolid(x, y, selected); // Modify the solid index
 				}
 			}
 
@@ -744,7 +643,7 @@ protected:
 			if (Editor)
 			{
 				if (GetKey(Z).bHeld)
-					if (int(GetMouseWheel()) != 0)
+					if (int(GetMouseWheel()) != 0) // Allows scrolling through the sprite sheet (one at a time)
 					{
 						Selected_tile -= int(GetMouseWheel()) / 120;
 						cout << Selected_tile << endl;
@@ -766,7 +665,7 @@ protected:
 			if (OverlayEditor)
 			{
 				if (GetKey(X).bHeld)
-					if (int(GetMouseWheel()) != 0)
+					if (int(GetMouseWheel()) != 0) // Allows scrolling through the sprite sheet (one at a time)
 					{
 						Selected_tile -= int(GetMouseWheel()) / 120;
 						cout << Selected_tile << endl;
@@ -800,7 +699,6 @@ protected:
 				Navigate = 1; // Begin path finding
 			else if (Navigate == 1)
 				Navigate = 2; // Stop old path and start new path finding
-			cout << "Navigate: " << Navigate << endl;
 			bNavigate = false;
 		}
 
@@ -811,51 +709,25 @@ protected:
 		m_pPlayer->DrawSelf(this, fOffsetX, fOffsetY); // Draw the player on top
 
 		if (UpdateLocalMap(fElapsedTime))
-			cout << "A Dynamic Creature has been erased..." << endl; // <- Nathan: added this for console
+			cout << "A Dynamic Creature has been erased..." << endl; // <- Nathan: added this for console to notify of when a creature is removed
 
 		return true;
 	}
 
 	bool UpdateLocalMap(float fElapsedTime) // Update map
 	{
-		int VecSize = m_nvecDynamics.size(); // <- Nathan: added this for console
-
-		for (auto& object : m_nvecDynamics) // Loop to give information about creatures being deleted
-			if (object->_bRedundant) 
-			{
-				cout << endl;
-				cout << object->_sName << " is being removed." << endl;
-				cout << "Health: " << ((cDynamic_Creature*)object)->_nHealth << endl;
-				cout << "Fullness: " << ((cDynamic_Creature*)object)->_fullness << endl;
-				cout << "Meatleft: " << ((cDynamic_Creature*)object)->_Meatleft << endl;
-				cout << "At: " << ((cDynamic_Creature*)object)->_posx << "," << ((cDynamic_Creature*)object)->_posy << endl;
-				cout << "DurB4Delete: " << ((cDynamic_Creature*)object)->_DurationBeforeDeletion << endl;
-				if (!((cDynamic_Creature*)object)->_bNoTarget)
-				{
-					cout << "Target name: " << ((cDynamic_Creature*)object)->_Target->_sName << endl;
-					cout << "Target Health: " << ((cDynamic_Creature*)((cDynamic_Creature*)object)->_Target)->_nHealth << endl;
-					cout << "Target DurB4Delete: " << ((cDynamic_Creature*)((cDynamic_Creature*)object)->_Target)->_DurationBeforeDeletion << endl;
-				}
-				cout << endl;
-			}
-
+		int VecSize = m_nvecDynamics.size(); // <- Nathan: Gets the number of creatures
 
 		// Erase and delete redundant creatures
 		m_nvecDynamics.erase(
 			remove_if(m_nvecDynamics.begin(), m_nvecDynamics.end(),
 				[](const cDynamic* d) {return ((cDynamic_Creature*)d)->_bRedundant; }), m_nvecDynamics.end());
 
-		if (VecSize > m_nvecDynamics.size()) // <- Nathan: added this for console
+		if (VecSize > m_nvecDynamics.size()) // <- Nathan: Returns true if fewer creatures after erasing
 			return true;
 		return false;
 	}
 };
-
-
-
-
-
-
 
 int main()
 {

@@ -32,8 +32,6 @@ extern "C" int NeighborCheckPath(int position); // Gets the neighbor value from 
 
 extern "C" int BoolGridGet(int x, int y); // Reads from the bool grid and returns collision bool
 
-
-
 class PathFinding
 {
 public:

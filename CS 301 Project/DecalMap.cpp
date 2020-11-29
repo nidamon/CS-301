@@ -33,18 +33,11 @@ void DecalMap::LoadDecals()
 
 	// Creatures
 	load("Status", "./Sprites/Creatures/StatusBars.png");
-	load("TestSpriteSheet", "./Sprites/Creatures/TestSpriteSheet.png");
 	load("Rabbit", "./Sprites/Creatures/Rabbit.png");
 	load("Fox", "./Sprites/Creatures/Fox.png");
 	load("Bear", "./Sprites/Creatures/Bear.png");
 	load("TV", "./Sprites/Creatures/TV.png");
 
-	// Environment
-	load("Tree1", "./Sprites/Environment/Tree1.png");
-
 	// Map Testing
 	load("Impassable", "./Sprites/Environment/Impassable.png");
-
-	// User Interface
-		// Unimplemented
 }
